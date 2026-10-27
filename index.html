@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>F1 16-BITS - Grand Prix Clássico</title>
+  
+  <!-- Fontes Retrô Arcade Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Teko:wght@600;700&display=swap" rel="stylesheet">
+  
+  <!-- Estilos Externos -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- Canvas Principal do Jogo -->
+    <canvas id="gameCanvas" width="960" height="600"></canvas>
+    
+    <!-- Filtro Efeito de Tubo CRT -->
+    <div id="crtOverlay" class="crt-overlay"></div>
+
+    <!-- Menu Interativo de Opções e Pausa -->
+    <div id="interactiveModal">
+      <div class="modal-content-box">
+        <div class="modal-title">PAINEL DE CONTROLE</div>
+        <div class="modal-options-list">
+          <button id="modalPauseBtn" class="modal-btn primary">⏸️ PAUSAR CORRIDA</button>
+          <button id="modalAudioBtn" class="modal-btn">🔊 SOM: ATIVADO</button>
+          <button id="modalCrtBtn" class="modal-btn">📺 FILTRO CRT: LIGADO</button>
+          <button id="modalRestartBtn" class="modal-btn" style="border-color: #ff0044;">🔄 REINICIAR LARGADA</button>
+          <button id="modalHomeBtn" class="modal-btn" style="border-color: #ffd000; color: #ffd000;">🏠 VOLTAR AO MENU INICIAL</button>
+          <button id="modalCloseBtn" class="modal-btn" style="background: #251347; color: #ffe600;">❯ VOLTAR À PISTA</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pórtico de Largada da F1 (5 Luzes Vermelhas) -->
+    <div id="startLightsOverlay">
+      <div class="gantry-box">
+        <div class="gantry-lamp" id="lamp1"></div>
+        <div class="gantry-lamp" id="lamp2"></div>
+        <div class="gantry-lamp" id="lamp3"></div>
+        <div class="gantry-lamp" id="lamp4"></div>
+        <div class="gantry-lamp" id="lamp5"></div>
+      </div>
+      <div class="gantry-text" id="gantryText">GRID DE FORMULA 1 PRONTO</div>
+    </div>
+
+    <!-- HUD Overlay Top-Down da Corrida -->
+    <div id="hud">
+      <div class="hud-top">
+        <div class="hud-box gold">
+          <div class="hud-title">POSIÇÃO F1</div>
+          <div class="hud-val" id="hudPos">12º / 12</div>
+        </div>
+        <div class="hud-box cyan" style="text-align: center;">
+          <div class="hud-title">CIRCUITO / VOLTA</div>
+          <div class="hud-val" id="hudLap">INTERLAGOS GP • 1 / 3</div>
+        </div>
+        <div class="top-right-wrap">
+          <div class="top-action-row">
+            <div class="hud-box" style="padding: 4px 10px;">
+              <div class="hud-title">TEMPO DE PROVA</div>
+              <div class="hud-val" id="hudTime">00:00.00</div>
+            </div>
+            <button id="menuTriggerBtn" class="menu-trigger-btn">⚙️ MENU</button>
+          </div>
+          <canvas id="radarCanvas" width="140" height="90"></canvas>
+        </div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="dashboard-panel">
+          <div class="speedo-wrap">
+            <div class="speedo-num" id="hudSpeed">0</div>
+            <div class="speedo-unit">KM / H</div>
+            <div class="auto-badge">⚡ ACELERAÇÃO AUTO</div>
+          </div>
+          <div class="tachometer-wrap">
+            <div class="f1-led-strip">
+              <div class="f1-led green" id="led1"></div>
+              <div class="f1-led green" id="led2"></div>
+              <div class="f1-led yellow" id="led3"></div>
+              <div class="f1-led yellow" id="led4"></div>
+              <div class="f1-led red" id="led5"></div>
+              <div class="f1-led blue" id="led6"></div>
+            </div>
+            <div class="tach-bar-bg">
+              <div class="tach-bar-fill" id="hudRpm"></div>
+            </div>
+          </div>
+          <div class="driver-badge-hud">
+            <div class="driver-tag-label">PILOTO:</div>
+            <div class="driver-tag-name" id="hudDriverName">VOCÊ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tela Inicial com Nome do Piloto e Dificuldade -->
+    <div id="titleScreen" class="screen-overlay">
+      <div class="retro-title">F1 16-BITS</div>
+      <div class="retro-sub">VISÃO AÉREA TOP-DOWN • GRAND PRIX CLÁSSICO</div>
+
+      <div class="driver-name-box">
+        <label for="playerNameInput">DIGITE O NOME DO SEU PILOTO:</label>
+        <input type="text" id="playerNameInput" class="driver-input" maxlength="14" value="A. SENNA" placeholder="SEU NOME">
+      </div>
+
+      <div style="font-size: 8px; color: #00ffff; margin-bottom: 6px; letter-spacing: 1px;">SELECIONE A DIFICULDADE:</div>
+      <div class="diff-group">
+        <button class="diff-btn" data-diff="easy">🟢 FÁCIL</button>
+        <button class="diff-btn selected" data-diff="medium">🟡 MÉDIO</button>
+        <button class="diff-btn" data-diff="hard">🔴 DIFÍCIL</button>
+      </div>
+
+      <button class="start-btn" id="startBtn">ALINHAR NO GRID F1 ❯</button>
+
+      <div class="controls-hint">
+        🏁 <b>VISÃO AÉREA REAL:</b> Acompanhe todas as disputas e ultrapassagens do grid de cima!<br>
+        ⚡ <b>ACELERAÇÃO PURA DE F1:</b> Sem nitro artificial. Controle as tangentes nas curvas e use o freio quando necessário.<br>
+        🎮 <b>CONTROLES:</b> [ESQUERDA / DIREITA] ou [A / D] para esterçar • [ESPAÇO] para frear • [P] ou botão [MENU] para Opções.
+      </div>
+    </div>
+
+    <!-- Menu Dedicado de Seleção de Pistas -->
+    <div id="trackSelectScreen" class="screen-overlay" style="display: none;">
+      <div class="track-modal-box">
+        <div class="retro-title" style="font-size: 22px; margin-bottom: 4px;">F1 16-BITS</div>
+        <div class="retro-sub" style="margin-bottom: 8px;">ESCOLHA O CIRCUITO DO GRAND PRIX</div>
+
+        <div class="track-cards-grid">
+          <div class="track-card selected" data-track="interlagos">
+            <div class="track-card-title">🇧🇷 INTERLAGOS</div>
+            <div class="track-card-desc">S do Senna fluido, Reta Oposta, Ferradura, Bico de Pato e subida da vitória.</div>
+          </div>
+          <div class="track-card" data-track="monza">
+            <div class="track-card-title">🇮🇹 MONZA</div>
+            <div class="track-card-desc">O Templo da Velocidade. Retas gigantescas, chicanes Rettifilo e Ascari, e a Parabólica.</div>
+          </div>
+          <div class="track-card" data-track="silverstone">
+            <div class="track-card-title">🇬🇧 SILVERSTONE</div>
+            <div class="track-card-desc">Traçado clássico e técnico. Copse, curvas lendárias Maggotts e Becketts e Reta Hangar.</div>
+          </div>
+          <div class="track-card" data-track="spa">
+            <div class="track-card-title">🇧🇪 SPA-FRANCORCHAMPS</div>
+            <div class="track-card-desc">Montanha-russa da F1. Grampo La Source, subida épica da Eau Rouge e Pouhon veloz.</div>
+          </div>
+          <div class="track-card" data-track="suzuka">
+            <div class="track-card-title">🇯🇵 SUZUKA</div>
+            <div class="track-card-desc">Técnico e desafiador. Os "S" de alta aderência, Degner, Grampo fechado e a curva rápida 130R.</div>
+          </div>
+          <div class="track-card" data-track="monaco">
+            <div class="track-card-title">🇲🇨 MÔNACO</div>
+            <div class="track-card-desc">O lendário circuito de rua. Subida do Cassino, Grampo mais lento da F1, Túnel e Piscina.</div>
+          </div>
+          <div class="track-card" data-track="random">
+            <div class="track-card-title">🎲 GP ALEATÓRIO</div>
+            <div class="track-card-desc">Sorteia qualquer autódromo oficial da temporada de forma surpresa!</div>
+          </div>
+        </div>
+
+        <div class="track-actions">
+          <button class="diff-btn" id="backToTitleBtn" style="padding: 12px 18px;">❮ VOLTAR</button>
+          <button class="start-btn" id="confirmTrackBtn">CONFIRMAR CIRCUITO E LARGAR ❯</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controles de Toque para Celular / Tablets -->
+    <div id="touch-controls">
+      <div class="d-pad">
+        <div class="t-btn" id="tLeft">◀</div>
+        <div class="t-btn" id="tRight">▶</div>
+      </div>
+      <div class="action-pad">
+        <div class="t-btn t-brake" id="tBrake">FREIO</div>
+      </div>
+    </div>
+
+    <!-- Tela de Conclusão / Pódio Oficial -->
+    <div id="finishScreen" class="screen-overlay" style="display: none;">
+      <div class="retro-title" id="finishTitle">BANDEIRA QUADRICULADA!</div>
+      <div class="retro-sub" id="finishPos">VOCÊ CONQUISTOU O PÓDIO!</div>
+      <div class="hud-box gold" style="margin-bottom: 18px; min-width: 290px;">
+        <div class="hud-title">PILOTO VENCEDOR</div>
+        <div class="hud-val" id="finishPilotName" style="font-size: 16px; color: #00ffcc; margin-bottom: 6px;">A. SENNA</div>
+        <div class="hud-title">TEMPO TOTAL DE PROVA</div>
+        <div class="hud-val" id="finishTime" style="font-size: 16px; color: #00ffff; margin-bottom: 6px;">00:00.00</div>
+        <div class="hud-title">MELHOR VOLTA RÁPIDA</div>
+        <div class="hud-val" id="bestLapTime" style="font-size: 14px; color: #ffe600;">00:00.00</div>
+      </div>
+      <button class="start-btn" id="restartBtn">DISPUTAR NOVO GP</button>
+    </div>
+  </div>
+
+  <!-- Script Principal do Jogo -->
+  <script src="game.js"></script>
+</body>
+</html>

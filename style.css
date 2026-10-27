@@ -1,0 +1,742 @@
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+user-select: none;
+-webkit-user-select: none;
+touch-action: manipulation;
+}
+
+body {
+background: #05020c;
+color: #fff;
+font-family: 'Press Start 2P', monospace;
+overflow: hidden;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+height: 100vh;
+height: 100dvh;
+width: 100vw;
+}
+
+#game-container {
+position: relative;
+width: 100%;
+height: 100%;
+max-width: 100vw;
+max-height: 100vh;
+background: #030805;
+box-shadow: 0 0 50px rgba(255, 0, 50, 0.4), 0 0 80px rgba(0, 240, 255, 0.25);
+border-radius: 0;
+overflow: hidden;
+display: flex;
+flex-direction: column;
+}
+
+canvas#gameCanvas {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+display: block;
+image-rendering: pixelated;
+}
+
+/* Filtro de Tubo CRT */
+.crt-overlay {
+pointer-events: none;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%),
+linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+background-size: 100% 3px, 6px 100%;
+box-shadow: inset 0 0 70px rgba(0,0,0,0.85);
+z-index: 25;
+transition: opacity 0.3s;
+}
+
+.crt-off {
+opacity: 0;
+}
+
+/* HUD Retrô de Formula 1 */
+#hud {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+pointer-events: none;
+z-index: 20;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+padding: 12px 16px;
+}
+
+.hud-top {
+display: flex;
+justify-content: space-between;
+align-items: flex-start;
+text-shadow: 2px 2px #000;
+gap: 10px;
+}
+
+.hud-box {
+background: rgba(12, 5, 26, 0.94);
+border: 3px solid #ff0044;
+border-radius: 6px;
+padding: 6px 12px;
+box-shadow: 0 4px 10px rgba(0,0,0,0.85);
+}
+
+.hud-box.gold {
+border-color: #ffd000;
+}
+
+.hud-box.cyan {
+border-color: #00f0ff;
+}
+
+.hud-title {
+font-size: 8px;
+color: #00ffff;
+margin-bottom: 3px;
+letter-spacing: 1px;
+}
+
+.hud-val {
+font-size: 13px;
+color: #ffe600;
+letter-spacing: 1px;
+white-space: nowrap;
+}
+
+.top-right-wrap {
+display: flex;
+flex-direction: column;
+align-items: flex-end;
+gap: 8px;
+pointer-events: auto;
+}
+
+.top-action-row {
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.menu-trigger-btn {
+background: rgba(14, 6, 30, 0.94);
+border: 2px solid #00f0ff;
+color: #ffe600;
+padding: 6px 10px;
+font-family: 'Press Start 2P', monospace;
+font-size: 8px;
+border-radius: 6px;
+cursor: pointer;
+box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+transition: all 0.2s;
+}
+
+.menu-trigger-btn:hover {
+background: #ff0044;
+border-color: #ffe600;
+color: #fff;
+}
+
+/* Radar / Minimapa Top-Down */
+#radarCanvas {
+width: 140px;
+height: 90px;
+background: rgba(4, 12, 8, 0.9);
+border: 2px solid #00f0ff;
+border-radius: 6px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.85);
+display: block;
+}
+
+.hud-bottom {
+display: flex;
+justify-content: space-between;
+align-items: flex-end;
+}
+
+.dashboard-panel {
+background: linear-gradient(180deg, #1b0a2c 0%, #080312 100%);
+border: 3px solid #00f0ff;
+border-radius: 8px;
+padding: 6px 14px;
+display: flex;
+align-items: center;
+gap: 14px;
+box-shadow: 0 4px 15px rgba(0,0,0,0.9);
+}
+
+.speedo-wrap {
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+
+.speedo-num {
+font-family: 'Teko', sans-serif;
+font-size: 44px;
+line-height: 36px;
+color: #00ffcc;
+text-shadow: 0 0 10px rgba(0, 255, 204, 0.7);
+}
+
+.speedo-unit {
+font-size: 8px;
+color: #ff0055;
+}
+
+.auto-badge {
+background: #00b05b;
+color: #fff;
+font-size: 7px;
+padding: 2px 6px;
+border-radius: 3px;
+margin-top: 3px;
+border: 1px solid #7effaf;
+letter-spacing: 0.5px;
+animation: pulse 1.4s infinite ease-in-out;
+}
+
+@keyframes pulse {
+0%, 100% { opacity: 1; transform: scale(1); }
+50% { opacity: 0.75; transform: scale(0.96); }
+}
+
+.tachometer-wrap {
+width: 120px;
+}
+
+.f1-led-strip {
+display: flex;
+gap: 3px;
+margin-bottom: 4px;
+}
+
+.f1-led {
+flex: 1;
+height: 6px;
+background: #251640;
+border-radius: 2px;
+border: 1px solid #111;
+}
+
+.f1-led.green.lit { background: #00ff44; box-shadow: 0 0 6px #00ff44; }
+.f1-led.yellow.lit { background: #ffee00; box-shadow: 0 0 6px #ffee00; }
+.f1-led.red.lit { background: #ff0033; box-shadow: 0 0 6px #ff0033; }
+.f1-led.blue.lit { background: #00e1ff; box-shadow: 0 0 8px #00e1ff; }
+
+.tach-bar-bg {
+width: 100%;
+height: 9px;
+background: #251640;
+border-radius: 3px;
+overflow: hidden;
+border: 1px solid #633ea8;
+}
+
+.tach-bar-fill {
+height: 100%;
+width: 0%;
+background: linear-gradient(90deg, #00ff88 0%, #ffe600 65%, #ff0044 95%);
+}
+
+.driver-badge-hud {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+margin-left: 6px;
+border-left: 2px solid #5d3896;
+padding-left: 10px;
+}
+
+.driver-tag-label {
+font-size: 7px;
+color: #00ffff;
+}
+
+.driver-tag-name {
+font-size: 11px;
+color: #ffd000;
+white-space: nowrap;
+max-width: 140px;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+
+/* Menu Interativo de Opções e Pausa */
+#interactiveModal {
+display: none;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(4, 2, 10, 0.88);
+backdrop-filter: blur(5px);
+z-index: 45;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+}
+
+.modal-content-box {
+background: linear-gradient(180deg, #1b0a2e 0%, #0a0414 100%);
+border: 3px solid #00f0ff;
+border-radius: 10px;
+padding: 22px 26px;
+max-width: 440px;
+width: 90%;
+box-shadow: 0 0 35px rgba(0, 240, 255, 0.5), inset 0 0 20px rgba(0,0,0,0.8);
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 14px;
+}
+
+.modal-title {
+font-size: 13px;
+color: #ffe600;
+letter-spacing: 1.5px;
+text-shadow: 2px 2px #ff0044;
+}
+
+.modal-options-list {
+display: flex;
+flex-direction: column;
+gap: 10px;
+width: 100%;
+}
+
+.modal-btn {
+font-family: 'Press Start 2P', monospace;
+font-size: 9px;
+padding: 12px 14px;
+background: #140926;
+border: 2px solid #5d3896;
+color: #00ffff;
+border-radius: 6px;
+cursor: pointer;
+text-align: center;
+transition: all 0.15s;
+}
+
+.modal-btn:hover {
+background: #2a114f;
+border-color: #00ffcc;
+color: #fff;
+transform: translateY(-2px);
+}
+
+.modal-btn.primary {
+background: linear-gradient(180deg, #ff0044 0%, #990022 100%);
+border-color: #ffd000;
+color: #fff;
+}
+
+/* Pórtico de 5 Luzes Vermelhas de Largada da F1 */
+#startLightsOverlay {
+position: absolute;
+top: 14%;
+left: 50%;
+transform: translateX(-50%);
+z-index: 32;
+display: none;
+flex-direction: column;
+align-items: center;
+pointer-events: none;
+}
+
+.gantry-box {
+background: #111;
+border: 3px solid #ff0044;
+border-radius: 8px;
+padding: 8px 16px;
+display: flex;
+gap: 12px;
+box-shadow: 0 0 25px rgba(255, 0, 68, 0.6);
+}
+
+.gantry-lamp {
+width: 22px;
+height: 22px;
+border-radius: 50%;
+background: #250308;
+border: 2px solid #444;
+transition: background 0.08s, box-shadow 0.08s;
+}
+
+.gantry-lamp.lit {
+background: #ff002b;
+box-shadow: 0 0 16px #ff002b, inset 0 0 4px #fff;
+}
+
+.gantry-text {
+margin-top: 8px;
+font-size: 10px;
+color: #00ffff;
+text-shadow: 2px 2px #000;
+letter-spacing: 2px;
+}
+
+/* Telas de Início, Seleção e Fim */
+.screen-overlay {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(6, 2, 14, 0.95);
+z-index: 40;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+padding: 16px;
+}
+
+.retro-title {
+font-size: 30px;
+color: #ffe600;
+text-shadow: 4px 4px #ff0044, 7px 7px #000;
+margin-bottom: 6px;
+font-style: italic;
+transform: skew(-6deg);
+}
+
+.retro-sub {
+font-size: 10px;
+color: #00ffff;
+margin-bottom: 16px;
+letter-spacing: 2px;
+}
+
+.driver-name-box {
+background: #120726;
+border: 2px solid #00f0ff;
+border-radius: 8px;
+padding: 12px 18px;
+margin-bottom: 16px;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 8px;
+width: 100%;
+max-width: 440px;
+}
+
+.driver-name-box label {
+font-size: 8px;
+color: #ffe600;
+letter-spacing: 1px;
+}
+
+.driver-input {
+font-family: 'Press Start 2P', monospace;
+font-size: 12px;
+background: #06020f;
+border: 2px solid #ff0055;
+color: #00ffcc;
+padding: 8px 12px;
+border-radius: 6px;
+text-align: center;
+width: 100%;
+outline: none;
+text-transform: uppercase;
+box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
+}
+
+.driver-input:focus {
+border-color: #ffd000;
+box-shadow: 0 0 10px rgba(255, 208, 0, 0.6);
+}
+
+.diff-group {
+display: flex;
+gap: 10px;
+margin-bottom: 18px;
+}
+
+.diff-btn {
+font-family: 'Press Start 2P', monospace;
+font-size: 9px;
+padding: 10px 14px;
+background: #180930;
+border: 2px solid #5d3896;
+color: #fff;
+border-radius: 6px;
+cursor: pointer;
+transition: all 0.15s;
+}
+
+.diff-btn.selected {
+background: #ff0044;
+border-color: #ffe600;
+color: #ffe600;
+box-shadow: 0 0 12px rgba(255, 0, 68, 0.8);
+transform: scale(1.05);
+}
+
+.track-modal-box {
+background: linear-gradient(180deg, #180930 0%, #0c0418 100%);
+border: 3px solid #00f0ff;
+border-radius: 10px;
+padding: 20px 24px;
+max-width: 680px;
+width: 90%;
+box-shadow: 0 0 30px rgba(0, 240, 255, 0.4), inset 0 0 20px rgba(0,0,0,0.8);
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+
+.track-cards-grid {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 12px;
+width: 100%;
+margin: 16px 0 20px 0;
+}
+
+.track-card {
+background: #110826;
+border: 2px solid #583c8a;
+border-radius: 8px;
+padding: 12px 14px;
+cursor: pointer;
+text-align: left;
+transition: all 0.2s ease;
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+
+.track-card:hover {
+border-color: #ff0055;
+background: #1c0d3a;
+transform: translateY(-2px);
+}
+
+.track-card.selected {
+background: linear-gradient(180deg, #093822 0%, #031c10 100%);
+border-color: #00ffcc;
+box-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
+transform: scale(1.02);
+}
+
+.track-card-title {
+font-size: 10px;
+color: #ffe600;
+letter-spacing: 1px;
+}
+
+.track-card.selected .track-card-title {
+color: #00ffcc;
+}
+
+.track-card-desc {
+font-size: 7px;
+line-height: 1.5;
+color: #a99ac4;
+font-family: sans-serif;
+}
+
+.start-btn {
+font-family: 'Press Start 2P', monospace;
+font-size: 11px;
+padding: 14px 26px;
+background: linear-gradient(180deg, #ff0044 0%, #990022 100%);
+color: #fff;
+border: 3px solid #ffcc00;
+border-radius: 6px;
+cursor: pointer;
+box-shadow: 0 5px 0 #4a0011, 0 0 20px rgba(255, 0, 68, 0.6);
+transition: transform 0.1s;
+}
+
+.start-btn:active {
+transform: translateY(3px);
+box-shadow: 0 2px 0 #4a0011;
+}
+
+.controls-hint {
+margin-top: 14px;
+font-size: 8px;
+line-height: 1.8;
+color: #d1c5e8;
+background: rgba(255,255,255,0.06);
+padding: 10px 14px;
+border-radius: 8px;
+border: 1px dashed rgba(255,255,255,0.25);
+max-width: 620px;
+}
+
+/* Controles de Toque Mobile */
+#touch-controls {
+position: absolute;
+bottom: 16px;
+left: 0;
+width: 100%;
+padding: 0 16px;
+z-index: 35;
+display: none;
+justify-content: space-between;
+align-items: flex-end;
+pointer-events: none;
+}
+
+.d-pad, .action-pad {
+display: flex;
+gap: 12px;
+pointer-events: auto;
+}
+
+.t-btn {
+width: 66px;
+height: 66px;
+border-radius: 50%;
+background: rgba(20, 8, 38, 0.88);
+border: 3px solid #00f0ff;
+color: #00ffff;
+font-size: 24px;
+font-weight: bold;
+display: flex;
+align-items: center;
+justify-content: center;
+box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0,0,0,0.6);
+touch-action: none;
+-webkit-tap-highlight-color: transparent;
+user-select: none;
+transition: transform 0.08s, background 0.08s;
+}
+
+.t-btn:active, .t-btn.pressed {
+background: #ff0044;
+border-color: #ffe600;
+color: #fff;
+transform: scale(0.92);
+box-shadow: 0 0 20px rgba(255, 0, 68, 0.8);
+}
+
+.t-brake {
+background: linear-gradient(180deg, #7a0e1e 0%, #3d050d 100%);
+border-color: #ff3366;
+color: #fff;
+font-size: 11px;
+font-family: 'Press Start 2P', monospace;
+width: 82px;
+height: 66px;
+border-radius: 14px;
+}
+
+.t-brake:active, .t-brake.pressed {
+background: #ff0033;
+border-color: #ffd000;
+}
+
+/* Responsividade Mobile e Telas Menores */
+@media (hover: none) and (pointer: coarse), (max-width: 900px) {
+#touch-controls { display: flex; }
+.hud-top { gap: 6px; }
+.hud-box { padding: 4px 8px; }
+.hud-title { font-size: 6px; }
+.hud-val { font-size: 9px; }
+.speedo-num { font-size: 32px; line-height: 28px; }
+.speedo-unit { font-size: 6px; }
+.auto-badge { font-size: 6px; padding: 2px 4px; }
+.tachometer-wrap { width: 75px; }
+.f1-led { height: 4px; }
+.tach-bar-bg { height: 7px; }
+.driver-tag-label { font-size: 5px; }
+.driver-tag-name { font-size: 8px; max-width: 85px; }
+.retro-title { font-size: 18px; margin-bottom: 4px; }
+.retro-sub { font-size: 8px; margin-bottom: 10px; }
+#hud { padding: 6px 8px; }
+.dashboard-panel { padding: 4px 8px; gap: 6px; }
+.diff-btn { font-size: 7px; padding: 6px 8px; }
+.diff-group { gap: 6px; margin-bottom: 12px; }
+.start-btn { font-size: 9px; padding: 10px 16px; }
+.driver-name-box { padding: 8px 10px; margin-bottom: 10px; }
+.driver-input { font-size: 10px; padding: 6px 8px; }
+.track-cards-grid { grid-template-columns: 1fr; max-height: 52vh; overflow-y: auto; gap: 8px; }
+.track-card { padding: 8px 10px; }
+.track-card-title { font-size: 9px; }
+.track-card-desc { font-size: 8px; }
+#radarCanvas { width: 90px; height: 55px; }
+.controls-hint { display: none; }
+}
+
+/* Layout em tela cheia e ajustes responsivos */
+html { width: 100%; height: 100%; overflow: hidden; }
+body { margin: 0; overscroll-behavior: none; }
+#game-container { max-height: none; box-shadow: none; }
+#hud {
+padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.screen-overlay, #interactiveModal {
+overflow-y: auto;
+overscroll-behavior: contain;
+justify-content: safe center;
+padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.screen-overlay > *, #interactiveModal > * { flex-shrink: 0; }
+.retro-title { max-width: 100%; overflow-wrap: anywhere; line-height: 1.5; }
+.retro-sub { line-height: 1.8; }
+.track-modal-box { width: 100%; }
+.track-card, .track-cards-grid { min-width: 0; }
+.track-card-title { line-height: 1.6; overflow-wrap: anywhere; }
+.track-actions { display: flex; flex-wrap: wrap; gap: 12px; width: 100%; justify-content: center; }
+.track-actions button { max-width: 100%; line-height: 1.6; }
+.modal-btn { min-height: 44px; line-height: 1.6; }
+
+@media (hover: none) and (pointer: coarse), (max-width: 900px) {
+#hud { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+.hud-bottom { margin-bottom: 88px; }
+#touch-controls {
+bottom: max(12px, env(safe-area-inset-bottom));
+padding-left: max(12px, env(safe-area-inset-left));
+padding-right: max(12px, env(safe-area-inset-right));
+}
+.menu-trigger-btn { min-height: 44px; }
+.driver-input { font-size: 16px; min-height: 44px; }
+.diff-btn, .start-btn { min-height: 44px; line-height: 1.6; }
+.track-cards-grid { max-height: 45dvh; }
+}
+
+@media (max-width: 600px) {
+.hud-top { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+.hud-top > .cyan { justify-self: end; max-width: 100%; }
+.hud-val { letter-spacing: 0; }
+.hud-title { letter-spacing: 0; line-height: 1.5; }
+.top-right-wrap { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: flex-start; }
+.top-action-row { flex-wrap: wrap; gap: 6px; }
+.dashboard-panel { max-width: 100%; }
+.driver-badge-hud { min-width: 0; }
+.driver-tag-name { max-width: 70px; }
+.auto-badge { font-size: 5px; }
+.track-modal-box, .modal-content-box { padding: 16px 12px; }
+.modal-title { font-size: 10px; line-height: 1.8; }
+.gantry-text { font-size: 7px; letter-spacing: 0; text-align: center; line-height: 1.8; }
+#startLightsOverlay { top: 30%; width: 100%; }
+#finishScreen .hud-box { min-width: 0 !important; max-width: 100%; }
+}
+
+@media (max-height: 500px) and (min-width: 601px) {
+.screen-overlay { padding-top: 12px; padding-bottom: 12px; }
+.track-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 38dvh; margin: 8px 0; }
+.hud-bottom { margin-bottom: 80px; }
+.track-modal-box { padding: 12px; }
+}
+

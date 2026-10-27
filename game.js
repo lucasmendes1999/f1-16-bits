@@ -1,0 +1,1640 @@
+/* ==========================================================================
+   RETRO CHIPTUNE SOUND ENGINE (Top Gear SNES Style)
+   ========================================================================== */
+class RetroSoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.isMuted = false;
+    this.tempo = 144;
+    this.isPlaying = false;
+    this.step = 0;
+    this.nextTime = 0;
+    this.timer = null;
+
+    this.engineOsc = null;
+    this.engineGain = null;
+
+    this.notes = {
+      'C3': 130.81, 'D3': 146.83, 'Eb3': 155.56, 'F3': 174.61, 'G3': 196.00, 'Ab3': 207.65, 'Bb3': 233.08,
+      'C4': 261.63, 'D4': 293.66, 'Eb4': 311.13, 'F4': 349.23, 'G4': 392.00, 'Ab4': 415.30, 'Bb4': 466.16,
+      'C5': 523.25, 'D5': 587.33, 'Eb5': 622.25, 'F5': 698.46, 'G5': 783.99, 'Ab5': 830.61, 'Bb5': 932.33,
+      '--': 0
+    };
+
+    this.bass = [
+      'C3','C3','Eb3','F3', 'G3','G3','Bb3','C4', 'C3','C3','Eb3','F3', 'Bb3','G3','F3','Eb3',
+      'Ab3','Ab3','C4','Eb4', 'Bb3','Bb3','D4','F4', 'C3','C3','Eb3','F3', 'G3','Bb3','C4','D4',
+      'C3','C3','Eb3','F3', 'G3','G3','Bb3','C4', 'C3','C3','Eb3','F3', 'Bb3','G3','F3','Eb3',
+      'F3','F3','Ab3','C4', 'G3','G3','Bb3','D4', 'C3','C3','C3','C3', 'Eb3','F3','G3','Bb3'
+    ];
+
+    this.lead = [
+      '--','--','C5','D5', 'Eb5','D5','C5','Bb4', 'C5','--','G4','--', 'Bb4','C5','--','--',
+      'Ab4','--','C5','--', 'Bb4','--','D5','--', 'C5','D5','Eb5','F5', 'G5','--','--','--',
+      'Eb5','--','D5','--', 'C5','Bb4','C5','--', 'G4','--','Bb4','--', 'C5','--','--','--',
+      'F4','--','Ab4','--', 'G4','--','Bb4','--', 'C5','--','Eb5','--', 'D5','Bb4','C5','--'
+    ];
+  }
+
+  init() {
+    if (!this.ctx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioContext();
+      this.setupEngine();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  playBeep(isGo = false) {
+    if (!this.ctx || this.isMuted) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = isGo ? 'sine' : 'square';
+    osc.frequency.setValueAtTime(isGo ? 940 : 440, this.ctx.currentTime);
+    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (isGo ? 0.35 : 0.16));
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + (isGo ? 0.36 : 0.18));
+  }
+
+  setupEngine() {
+    if (!this.ctx) return;
+    this.engineOsc = this.ctx.createOscillator();
+    this.engineOsc.type = 'sawtooth';
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(750, this.ctx.currentTime);
+
+    this.engineGain = this.ctx.createGain();
+    this.engineGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+
+    this.engineOsc.connect(filter);
+    filter.connect(this.engineGain);
+    this.engineGain.connect(this.ctx.destination);
+    this.engineOsc.start();
+  }
+
+  updateEngine(speedRatio) {
+    if (!this.ctx || this.isMuted || !this.engineOsc) return;
+    const base = 95;
+    const targetFreq = base + speedRatio * 320;
+    this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.05);
+    this.engineGain.gain.setTargetAtTime(0.06 + speedRatio * 0.08, this.ctx.currentTime, 0.05);
+  }
+
+  playBump() {
+    if (!this.ctx || this.isMuted) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.16);
+    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.16);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.18);
+  }
+
+  playLap() {
+    if (!this.ctx || this.isMuted) return;
+    [523, 659, 784, 1046].forEach((f, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(f, this.ctx.currentTime + i * 0.09);
+      gain.gain.setValueAtTime(0.18, this.ctx.currentTime + i * 0.09);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.09 + 0.14);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(this.ctx.currentTime + i * 0.09);
+      osc.stop(this.ctx.currentTime + i * 0.09 + 0.15);
+    });
+  }
+
+  startMusic() {
+    if (this.isPlaying) return;
+    this.isPlaying = true;
+    this.step = 0;
+    this.nextTime = this.ctx.currentTime + 0.05;
+    this.schedule();
+  }
+
+  schedule() {
+    if (!this.isPlaying) return;
+    while (this.nextTime < this.ctx.currentTime + 0.15) {
+      this.playStep(this.step, this.nextTime);
+      this.nextTime += (60 / this.tempo) / 4;
+      this.step = (this.step + 1) % this.bass.length;
+    }
+    this.timer = setTimeout(() => this.schedule(), 25);
+  }
+
+  playStep(step, time) {
+    if (this.isMuted || !this.ctx) return;
+    const b = this.bass[step];
+    if (b && b !== '--') {
+      this.synth(this.notes[b], time, 0.14, 'square', 0.14, 550);
+    }
+    const l = this.lead[step];
+    if (l && l !== '--') {
+      this.synth(this.notes[l], time, 0.22, 'sawtooth', 0.12, 1750);
+    }
+    if (step % 4 === 0) {
+      this.kick(time);
+    } else if (step % 8 === 4) {
+      this.snare(time);
+    }
+  }
+
+  synth(freq, time, dur, type, vol, filterFreq) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, time);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(filterFreq, time);
+
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(time);
+    osc.stop(time + dur);
+  }
+
+  kick(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.frequency.setValueAtTime(140, time);
+    osc.frequency.exponentialRampToValueAtTime(32, time + 0.09);
+    gain.gain.setValueAtTime(0.28, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(time);
+    osc.stop(time + 0.12);
+  }
+
+  snare(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(240, time);
+    osc.frequency.exponentialRampToValueAtTime(60, time + 0.08);
+    gain.gain.setValueAtTime(0.18, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.09);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(time);
+    osc.stop(time + 0.1);
+  }
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    if (this.engineGain) {
+      this.engineGain.gain.setValueAtTime(this.isMuted ? 0 : 0.08, this.ctx.currentTime);
+    }
+    return this.isMuted;
+  }
+
+  pauseEngine() {
+    if (this.engineGain && this.ctx) {
+      this.engineGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+    }
+  }
+}
+
+/* ==========================================================================
+   CIRCUITOS TOP-DOWN DE FORMULA 1 (Sentido Horário, Curvas Suaves e Reta Limpa)
+   ========================================================================== */
+class TopDownTrack {
+  constructor(type = 'interlagos') {
+    this.type = type;
+    this.width = 260; // Pista larga e confortável para tangentes perfeitas
+    this.points = [];
+    this.totalLength = 0;
+    this.distances = [];
+    this.name = 'INTERLAGOS GP';
+    this.build();
+  }
+
+  build() {
+    let rawPoints = [];
+    const pitY = -800;
+
+    if (this.type === 'monza') {
+      this.name = 'MONZA GP';
+      rawPoints = [
+        { x: -1800, y: pitY },
+        { x: -900,  y: pitY },
+        { x: 100,   y: pitY },
+        { x: 1100,  y: pitY },
+        { x: 1700,  y: -750 },
+        { x: 2200,  y: -500 },
+        { x: 2550,  y: -100 },
+        { x: 2550,  y: 350 },
+        { x: 2200,  y: 650 },
+        { x: 1500,  y: 750 },
+        { x: 800,   y: 750 },
+        { x: 0,     y: 850 },
+        { x: -800,  y: 850 },
+        { x: -1500, y: 700 },
+        { x: -2100, y: 480 },
+        { x: -2550, y: 150 },
+        { x: -2650, y: -250 },
+        { x: -2400, y: -650 },
+        { x: -2150, y: pitY }
+      ];
+    } else if (this.type === 'silverstone') {
+      this.name = 'SILVERSTONE GP';
+      rawPoints = [
+        { x: -1800, y: pitY },
+        { x: -900,  y: pitY },
+        { x: 100,   y: pitY },
+        { x: 1100,  y: pitY },
+        { x: 1750,  y: -600 },
+        { x: 2200,  y: -250 },
+        { x: 2050,  y: 200 },
+        { x: 1450,  y: 480 },
+        { x: 750,   y: 700 },
+        { x: 50,    y: 850 },
+        { x: -650,  y: 850 },
+        { x: -1300, y: 650 },
+        { x: -1750, y: 750 },
+        { x: -2250, y: 450 },
+        { x: -2550, y: 0 },
+        { x: -2550, y: -450 },
+        { x: -2200, y: pitY }
+      ];
+    } else if (this.type === 'spa') {
+      this.name = 'SPA-FRANCORCHAMPS GP';
+      rawPoints = [
+        { x: -1800, y: pitY },
+        { x: -900,  y: pitY },
+        { x: 100,   y: pitY },
+        { x: 1050,  y: pitY },
+        { x: 1700,  y: -600 },
+        { x: 2250,  y: -200 },
+        { x: 2550,  y: 300 },
+        { x: 2300,  y: 800 },
+        { x: 1600,  y: 1000 },
+        { x: 800,   y: 900 },
+        { x: -100,  y: 1050 },
+        { x: -850,  y: 950 },
+        { x: -1550, y: 650 },
+        { x: -2250, y: 300 },
+        { x: -2550, y: -150 },
+        { x: -2450, y: -600 },
+        { x: -2150, y: pitY }
+      ];
+    } else if (this.type === 'suzuka') {
+      this.name = 'SUZUKA GP';
+      rawPoints = [
+        { x: -1800, y: pitY },
+        { x: -900,  y: pitY },
+        { x: 100,   y: pitY },
+        { x: 1050,  y: pitY },
+        { x: 1700,  y: -600 },
+        { x: 2200,  y: -350 },
+        { x: 2400,  y: 50 },
+        { x: 2150,  y: 380 },
+        { x: 2450,  y: 650 },
+        { x: 1950,  y: 900 },
+        { x: 1200,  y: 800 },
+        { x: 400,   y: 1000 },
+        { x: -400,  y: 880 },
+        { x: -1200, y: 1050 },
+        { x: -1950, y: 750 },
+        { x: -2480, y: 250 },
+        { x: -2550, y: -250 },
+        { x: -2350, y: -620 },
+        { x: -2150, y: pitY }
+      ];
+    } else if (this.type === 'monaco') {
+      this.name = 'MÔNACO GP';
+      rawPoints = [
+        { x: -1800, y: pitY },
+        { x: -900,  y: pitY },
+        { x: 100,   y: pitY },
+        { x: 950,   y: pitY },
+        { x: 1600,  y: -620 },
+        { x: 2000,  y: -300 },
+        { x: 2300,  y: 30 },
+        { x: 2050,  y: 380 },
+        { x: 2250,  y: 650 },
+        { x: 1750,  y: 800 },
+        { x: 1050,  y: 950 },
+        { x: 200,   y: 1000 },
+        { x: -600,  y: 850 },
+        { x: -1350, y: 700 },
+        { x: -1950, y: 580 },
+        { x: -2450, y: 220 },
+        { x: -2520, y: -220 },
+        { x: -2300, y: -620 },
+        { x: -2100, y: pitY }
+      ];
+    } else {
+      this.name = 'INTERLAGOS GP';
+      rawPoints = [
+        { x: -1800, y: pitY },
+        { x: -900,  y: pitY },
+        { x: 100,   y: pitY },
+        { x: 1050,  y: pitY },
+        { x: 1700,  y: -580 },
+        { x: 2100,  y: -300 },
+        { x: 2350,  y: 80 },
+        { x: 2050,  y: 600 },
+        { x: 1250,  y: 900 },
+        { x: 400,   y: 1000 },
+        { x: -500,  y: 820 },
+        { x: -1250, y: 1000 },
+        { x: -1800, y: 720 },
+        { x: -2350, y: 350 },
+        { x: -2580, y: -120 },
+        { x: -2400, y: -580 },
+        { x: -2150, y: pitY }
+      ];
+    }
+
+    // Interpolação Catmull-Rom de alta densidade (48 passos por segmento)
+    this.points = [];
+    const numRaw = rawPoints.length;
+    const stepsPerSeg = 48;
+
+    for (let i = 0; i < numRaw; i++) {
+      const p0 = rawPoints[(i - 1 + numRaw) % numRaw];
+      const p1 = rawPoints[i];
+      const p2 = rawPoints[(i + 1) % numRaw];
+      const p3 = rawPoints[(i + 2) % numRaw];
+
+      for (let step = 0; step < stepsPerSeg; step++) {
+        const t = step / stepsPerSeg;
+        const x = this.catmullRom(p0.x, p1.x, p2.x, p3.x, t);
+        const y = this.catmullRom(p0.y, p1.y, p2.y, p3.y, t);
+        this.points.push({ x, y });
+      }
+    }
+
+    // Pré-calcula distâncias acumuladas e normais
+    this.totalLength = 0;
+    this.distances = [0];
+    const count = this.points.length;
+
+    for (let i = 0; i < count; i++) {
+      const next = this.points[(i + 1) % count];
+      const dx = next.x - this.points[i].x;
+      const dy = next.y - this.points[i].y;
+      const segDist = Math.hypot(dx, dy);
+      this.totalLength += segDist;
+      this.distances.push(this.totalLength);
+
+      const len = segDist || 1;
+      this.points[i].nx = -dy / len;
+      this.points[i].ny = dx / len;
+      this.points[i].angle = Math.atan2(dy, dx);
+    }
+  }
+
+  catmullRom(p0, p1, p2, p3, t) {
+    const v0 = (p2 - p0) * 0.5;
+    const v1 = (p3 - p1) * 0.5;
+    const t2 = t * t;
+    const t3 = t * t2;
+    return (2 * p1 - 2 * p2 + v0 + v1) * t3 +
+           (-3 * p1 + 3 * p2 - 2 * v0 - v1) * t2 +
+           v0 * t + p1;
+  }
+
+  getPointAtDistance(d) {
+    let dist = ((d % this.totalLength) + this.totalLength) % this.totalLength;
+    let low = 0, high = this.distances.length - 1;
+    while (low <= high) {
+      let mid = (low + high) >> 1;
+      if (this.distances[mid] <= dist) low = mid + 1;
+      else high = mid - 1;
+    }
+    const idx = Math.max(0, high);
+    const p1 = this.points[idx % this.points.length];
+    const p2 = this.points[(idx + 1) % this.points.length];
+    const segDist = (this.distances[idx + 1] || this.totalLength) - this.distances[idx];
+    const t = segDist > 0 ? (dist - this.distances[idx]) / segDist : 0;
+
+    return {
+      x: p1.x + (p2.x - p1.x) * t,
+      y: p1.y + (p2.y - p1.y) * t,
+      angle: p1.angle,
+      nx: p1.nx,
+      ny: p1.ny
+    };
+  }
+
+  getTrackPosition(dist, lateralOffset = 0) {
+    const pt = this.getPointAtDistance(dist);
+    return {
+      x: pt.x + pt.nx * lateralOffset,
+      y: pt.y + pt.ny * lateralOffset,
+      angle: pt.angle
+    };
+  }
+
+  render(ctx, camera) {
+    ctx.save();
+    ctx.translate(camera.width / 2, camera.height / 2);
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-camera.x, -camera.y);
+
+    const count = this.points.length;
+    const halfW = this.width / 2;
+    const curbW = 24;
+
+    // Gramado xadrez
+    const gridSize = 220;
+    const minX = -3600, maxX = 3600, minY = -2600, maxY = 2600;
+    for (let gx = minX; gx < maxX; gx += gridSize) {
+      for (let gy = minY; gy < maxY; gy += gridSize) {
+        ctx.fillStyle = ((gx / gridSize + gy / gridSize) % 2 === 0) ? '#0a3d18' : '#0d4a1e';
+        ctx.fillRect(gx, gy, gridSize, gridSize);
+      }
+    }
+
+    // Brita
+    ctx.strokeStyle = '#c99a4e';
+    ctx.lineWidth = this.width + 110;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i <= count; i++) {
+      const pt = this.points[i % count];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+
+    // Zebras Bicolores em Relevo 3D
+    for (let i = 0; i < count; i++) {
+      const p1 = this.points[i];
+      const p2 = this.points[(i + 1) % count];
+      const isRed = (Math.floor(i / 2) % 2 === 0);
+      ctx.fillStyle = isRed ? '#e60000' : '#f4f4f4';
+
+      // Zebra Externa
+      ctx.beginPath();
+      ctx.moveTo(p1.x - p1.nx * halfW, p1.y - p1.ny * halfW);
+      ctx.lineTo(p1.x - p1.nx * (halfW + curbW), p1.y - p1.ny * (halfW + curbW));
+      ctx.lineTo(p2.x - p2.nx * (halfW + curbW), p2.y - p2.ny * (halfW + curbW));
+      ctx.lineTo(p2.x - p2.nx * halfW, p2.y - p2.ny * halfW);
+      ctx.closePath();
+      ctx.fill();
+
+      // Zebra Interna
+      ctx.beginPath();
+      ctx.moveTo(p1.x + p1.nx * halfW, p1.y + p1.ny * halfW);
+      ctx.lineTo(p1.x + p1.nx * (halfW + curbW), p1.y + p1.ny * (halfW + curbW));
+      ctx.lineTo(p2.x + p2.nx * (halfW + curbW), p2.y + p2.ny * (halfW + curbW));
+      ctx.lineTo(p2.x + p2.nx * halfW, p2.y + p2.ny * halfW);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Borda de borracha
+    ctx.strokeStyle = '#18171c';
+    ctx.lineWidth = this.width + 4;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (let i = 0; i <= count; i++) {
+      const pt = this.points[i % count];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+
+    // Asfalto Principal
+    ctx.strokeStyle = '#232228';
+    ctx.lineWidth = this.width;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i <= count; i++) {
+      const pt = this.points[i % count];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+
+    // Racing line emborrachada
+    ctx.strokeStyle = 'rgba(12, 10, 16, 0.45)';
+    ctx.lineWidth = 42;
+    ctx.beginPath();
+    for (let i = 0; i <= count; i++) {
+      const pt = this.points[i % count];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+
+    // Faixas Centrais
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 5;
+    ctx.setLineDash([28, 32]);
+    ctx.beginPath();
+    for (let i = 0; i <= count; i++) {
+      const pt = this.points[i % count];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Pit Wall com Patrocinadores
+    const pitY = -800;
+    const pitWallY = pitY - halfW - 46;
+    const pitStartX = -2000;
+    const pitEndX = 1100;
+
+    ctx.fillStyle = '#1c1b22';
+    ctx.fillRect(pitStartX, pitWallY, pitEndX - pitStartX, 34);
+    ctx.strokeStyle = '#ff0044';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(pitStartX, pitWallY, pitEndX - pitStartX, 34);
+
+    const sponsors = ['SHELL', 'PIRELLI', 'AGIP', 'GEAR F1', 'MAGNETI MARELLI', 'TAG HEUER', 'SEGA', 'BOSS'];
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    let spIdx = 0;
+    for (let sx = pitStartX + 90; sx < pitEndX - 60; sx += 180) {
+      ctx.fillStyle = (spIdx % 2 === 0) ? '#ffd000' : '#00ffff';
+      ctx.fillText(sponsors[spIdx % sponsors.length], sx, pitWallY + 17);
+      spIdx++;
+    }
+
+    // Linha de Chegada Quadriculada
+    const finishX = 0;
+    const finishY = pitY;
+    const cellS = 15;
+    for (let row = -halfW; row < halfW; row += cellS) {
+      for (let col = -cellS * 2; col <= cellS * 2; col += cellS) {
+        const isWhite = ((Math.floor(row / cellS) + Math.floor(col / cellS)) % 2 === 0);
+        ctx.fillStyle = isWhite ? '#ffffff' : '#000000';
+        ctx.fillRect(finishX + col, finishY + row, cellS, cellS);
+      }
+    }
+
+    // Placas de 100m e 50m
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(1050, finishY - halfW - 35, 45, 20);
+    ctx.fillRect(1200, finishY - halfW - 35, 45, 20);
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText('100m', 1072, finishY - halfW - 25);
+    ctx.fillText('50m',  1222, finishY - halfW - 25);
+
+    // Boxes do Grid de Largada
+    for (let g = 1; g <= 12; g++) {
+      const boxX = finishX - g * 115;
+      const boxOffset = (g % 2 === 1) ? -45 : 45;
+      const boxY = finishY + boxOffset;
+
+      ctx.strokeStyle = '#ffd000';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(boxX - 35, boxY - 24, 70, 48);
+
+      ctx.fillStyle = '#ffd000';
+      ctx.font = 'bold 10px monospace';
+      ctx.fillText(`P${g}`, boxX, boxY);
+    }
+
+    ctx.restore();
+  }
+}
+
+/* ==========================================================================
+   TOP-DOWN FORMULA 1 GAME ENGINE (F1 16-BITS)
+   ========================================================================== */
+class TopDownF1Game {
+  constructor() {
+    this.canvas = document.getElementById('gameCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.radarCanvas = document.getElementById('radarCanvas');
+    this.radarCtx = this.radarCanvas.getContext('2d');
+
+    this.audio = new RetroSoundEngine();
+    this.selectedTrack = 'interlagos';
+    this.track = new TopDownTrack(this.selectedTrack);
+
+    this.playerName = 'A. SENNA';
+    this.difficulty = 'medium';
+
+    this.camera = {
+      x: 0,
+      y: 0,
+      zoom: 0.88,
+      width: this.canvas.width,
+      height: this.canvas.height
+    };
+
+    this.player = {
+      x: 0,
+      y: 0,
+      prevX: 0,
+      prevY: 0,
+      angle: 0,
+      speed: 0,
+      maxSpeed: 300,
+      accel: 105,
+      brake: 240,
+      steerSpeed: 2.15,
+      lap: 1,
+      rank: 12,
+      trackDist: 0,
+      distance: 0,
+      hasPassedStartLine: false,
+      halfwayChecked: false,
+      livery: 'ferrari',
+      name: 'A. SENNA'
+    };
+
+    this.racers = [];
+    this.totalRacers = 12;
+
+    this.lap = 1;
+    this.totalLaps = 3;
+    this.lapStartTime = 0;
+    this.totalStartTime = 0;
+    this.bestLapTime = Infinity;
+    this.raceStarted = false;
+    this.raceFinished = false;
+    this.isPaused = false;
+    this.countdownActive = false;
+
+    this.particles = [];
+    this.skidmarks = [];
+
+    this.keys = { left: false, right: false, brake: false };
+
+    this.resizeCanvas = () => {
+      const { width, height } = this.canvas.parentElement.getBoundingClientRect();
+      this.canvas.width = Math.max(1, Math.round(width));
+      this.canvas.height = Math.max(1, Math.round(height));
+      this.camera.width = this.canvas.width;
+      this.camera.height = this.canvas.height;
+      this.camera.zoom = 0.88 * Math.max(0.55, Math.min(width / 960, height / 600));
+      this.ctx.imageSmoothingEnabled = false;
+    };
+    this.resizeCanvas();
+    this.resizeObserver = new ResizeObserver(this.resizeCanvas);
+    this.resizeObserver.observe(this.canvas.parentElement);
+
+    this.bindEvents();
+    this.setupTouchControls();
+    this.setupDifficultyButtons();
+    this.setupTrackCards();
+    this.initGrid();
+    this.render();
+  }
+
+  initGrid() {
+    const f1Drivers = [
+      { name: 'M. SCHUMACHER',  team: 'Benetton',  livery: 'benetton', baseSpeed: 275 },
+      { name: 'A. PROST',       team: 'Williams',  livery: 'williams', baseSpeed: 272 },
+      { name: 'N. MANSELL',     team: 'Williams',  livery: 'williams', baseSpeed: 270 },
+      { name: 'J. ALESI',       team: 'Ferrari',   livery: 'ferrari',  baseSpeed: 268 },
+      { name: 'G. BERGER',      team: 'Ferrari',   livery: 'ferrari',  baseSpeed: 266 },
+      { name: 'D. HILL',        team: 'Williams',  livery: 'williams', baseSpeed: 264 },
+      { name: 'M. HÄKKINEN',    team: 'McLaren',   livery: 'mclaren',  baseSpeed: 262 },
+      { name: 'R. BARRICHELLO', team: 'Jordan',    livery: 'jordan',   baseSpeed: 260 },
+      { name: 'E. IRVINE',      team: 'Jordan',    livery: 'jordan',   baseSpeed: 258 },
+      { name: 'J. HERBERT',     team: 'Lotus',     livery: 'lotus',    baseSpeed: 256 },
+      { name: 'K. WENDLINGER',  team: 'Sauber',    livery: 'sauber',   baseSpeed: 254 }
+    ];
+
+    const diffMod = this.getDifficultyMod();
+    const finishX = 0;
+    const pitY = -800;
+
+    let finishDist = 0;
+    let minFinishDistSq = Infinity;
+    for (let i = 0; i < this.track.points.length; i++) {
+      const pt = this.track.points[i];
+      if (pt.y < -600) {
+        const dSq = (pt.x - finishX) ** 2 + (pt.y - pitY) ** 2;
+        if (dSq < minFinishDistSq) {
+          minFinishDistSq = dSq;
+          finishDist = this.track.distances[i] || 0;
+        }
+      }
+    }
+
+    const totalLen = this.track.totalLength;
+
+    this.racers = f1Drivers.map((driver, idx) => {
+      const gridPos = idx + 1;
+      const boxX = finishX - gridPos * 115;
+      const laneOffset = (gridPos % 2 === 1) ? -45 : 45;
+      const boxY = pitY + laneOffset;
+      const startDist = (finishDist - gridPos * 115 + totalLen) % totalLen;
+
+      return {
+        name: driver.name,
+        team: driver.team,
+        livery: driver.livery,
+        gridSlot: gridPos,
+        trackDist: startDist,
+        laneOffset: laneOffset,
+        targetLaneOffset: laneOffset,
+        x: boxX,
+        y: boxY,
+        angle: 0,
+        speed: 0,
+        maxSpeed: driver.baseSpeed * diffMod.speed,
+        accel: (90 + Math.random() * 15) * diffMod.accel,
+        lap: 1,
+        halfwayChecked: false
+      };
+    });
+
+    const playerGridPos = 12;
+    const playerLaneOffset = 45;
+    const playerBoxX = finishX - playerGridPos * 115;
+    const playerBoxY = pitY + playerLaneOffset;
+    const playerStartDist = (finishDist - playerGridPos * 115 + totalLen) % totalLen;
+
+    this.player.gridSlot = 12;
+    this.player.trackDist = playerStartDist;
+    this.player.raceProgress = playerStartDist;
+    this.player.distance = playerStartDist;
+    this.player.x = playerBoxX;
+    this.player.y = playerBoxY;
+    this.player.prevX = playerBoxX;
+    this.player.prevY = playerBoxY;
+    this.player.angle = 0;
+    this.player.speed = 0;
+    this.player.lap = 1;
+    this.player.hasPassedStartLine = false;
+    this.player.halfwayChecked = false;
+    this.player.rank = 12;
+
+    this.camera.x = this.player.x + 80;
+    this.camera.y = this.player.y;
+  }
+
+  getDifficultyMod() {
+    switch (this.difficulty) {
+      case 'easy':
+        return { speed: 0.86, accel: 0.85 };
+      case 'hard':
+        return { speed: 1.04, accel: 1.05 };
+      case 'medium':
+      default:
+        return { speed: 0.96, accel: 0.98 };
+    }
+  }
+
+  setupTouchControls() {
+    const bindTouch = (id, keyName) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const press = (e) => {
+        if (e.cancelable) e.preventDefault();
+        this.keys[keyName] = true;
+        el.classList.add('pressed');
+      };
+
+      const release = (e) => {
+        if (e.cancelable) e.preventDefault();
+        this.keys[keyName] = false;
+        el.classList.remove('pressed');
+      };
+
+      el.addEventListener('touchstart', press, { passive: false });
+      el.addEventListener('touchend', release, { passive: false });
+      el.addEventListener('touchcancel', release, { passive: false });
+      el.addEventListener('mousedown', press);
+      el.addEventListener('mouseup', release);
+      el.addEventListener('mouseleave', release);
+    };
+
+    bindTouch('tLeft', 'left');
+    bindTouch('tRight', 'right');
+    bindTouch('tBrake', 'brake');
+
+    window.addEventListener('gesturestart', (e) => e.preventDefault());
+  }
+
+  setupTrackCards() {
+    const cards = document.querySelectorAll('.track-card');
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        cards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const choice = card.getAttribute('data-track');
+        if (choice === 'random') {
+          const tracks = ['interlagos', 'monza', 'silverstone', 'spa', 'suzuka', 'monaco'];
+          this.selectedTrack = tracks[Math.floor(Math.random() * tracks.length)];
+        } else {
+          this.selectedTrack = choice;
+        }
+        this.track = new TopDownTrack(this.selectedTrack);
+        this.initGrid();
+        this.render();
+      });
+    });
+  }
+
+  setupDifficultyButtons() {
+    const btns = document.querySelectorAll('.diff-btn');
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        this.difficulty = btn.getAttribute('data-diff');
+      });
+    });
+  }
+
+  bindEvents() {
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) this.keys.left = true;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) this.keys.right = true;
+      if (e.code === 'Space' && !e.target.matches('input, textarea, button, [contenteditable]')) {
+        e.preventDefault();
+        this.keys.brake = true;
+      }
+      if (['KeyP', 'Escape'].includes(e.code)) {
+        this.toggleInteractiveMenu();
+        e.preventDefault();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) this.keys.left = false;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) this.keys.right = false;
+      if (e.code === 'Space') this.keys.brake = false;
+    });
+
+    const titleScreen = document.getElementById('titleScreen');
+    const trackScreen = document.getElementById('trackSelectScreen');
+    const nameInput = document.getElementById('playerNameInput');
+
+    nameInput.addEventListener('input', (e) => {
+      const val = e.target.value.trim().toUpperCase();
+      this.playerName = val.length > 0 ? val : 'A. SENNA';
+      this.player.name = this.playerName;
+      document.getElementById('hudDriverName').innerText = this.playerName;
+    });
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      const val = nameInput.value.trim().toUpperCase();
+      this.playerName = val.length > 0 ? val : 'A. SENNA';
+      this.player.name = this.playerName;
+      document.getElementById('hudDriverName').innerText = this.playerName;
+
+      titleScreen.style.display = 'none';
+      trackScreen.style.display = 'flex';
+    });
+
+    document.getElementById('backToTitleBtn').addEventListener('click', () => {
+      trackScreen.style.display = 'none';
+      titleScreen.style.display = 'flex';
+    });
+
+    document.getElementById('confirmTrackBtn').addEventListener('click', () => {
+      trackScreen.style.display = 'none';
+      this.startGame();
+    });
+
+    document.getElementById('restartBtn').addEventListener('click', () => this.restartGame());
+
+    const menuTrigger = document.getElementById('menuTriggerBtn');
+    const pauseBtn = document.getElementById('modalPauseBtn');
+    const audioBtn = document.getElementById('modalAudioBtn');
+    const crtBtn = document.getElementById('modalCrtBtn');
+    const restartBtn = document.getElementById('modalRestartBtn');
+    const homeBtn = document.getElementById('modalHomeBtn');
+    const closeBtn = document.getElementById('modalCloseBtn');
+
+    menuTrigger.addEventListener('click', () => this.toggleInteractiveMenu());
+    closeBtn.addEventListener('click', () => this.toggleInteractiveMenu(false));
+
+    pauseBtn.addEventListener('click', () => {
+      this.togglePause();
+      pauseBtn.innerText = this.isPaused ? '▶️ RETOMAR CORRIDA' : '⏸️ PAUSAR CORRIDA';
+    });
+
+    audioBtn.addEventListener('click', () => {
+      const muted = this.audio.toggleMute();
+      audioBtn.innerText = muted ? '🔇 SOM: MUTADO' : '🔊 SOM: ATIVADO';
+    });
+
+    crtBtn.addEventListener('click', () => {
+      const overlay = document.getElementById('crtOverlay');
+      overlay.classList.toggle('crt-off');
+      const isOff = overlay.classList.contains('crt-off');
+      crtBtn.innerText = isOff ? '📺 FILTRO CRT: DESLIGADO' : '📺 FILTRO CRT: LIGADO';
+    });
+
+    restartBtn.addEventListener('click', () => {
+      this.toggleInteractiveMenu(false);
+      this.restartGame();
+    });
+
+    if (homeBtn) {
+      homeBtn.addEventListener('click', () => {
+        this.toggleInteractiveMenu(false);
+        this.goToHomeMenu();
+      });
+    }
+  }
+
+  goToHomeMenu() {
+    this.raceStarted = false;
+    this.countdownActive = false;
+    this.isPaused = false;
+    this.audio.pauseEngine();
+    this.audio.isPlaying = false;
+    if (this.audio.timer) {
+      clearTimeout(this.audio.timer);
+      this.audio.timer = null;
+    }
+
+    const gantry = document.getElementById('startLightsOverlay');
+    if (gantry) gantry.style.display = 'none';
+
+    const finishScreen = document.getElementById('finishScreen');
+    if (finishScreen) finishScreen.style.display = 'none';
+
+    const trackScreen = document.getElementById('trackSelectScreen');
+    if (trackScreen) trackScreen.style.display = 'none';
+
+    const titleScreen = document.getElementById('titleScreen');
+    if (titleScreen) titleScreen.style.display = 'flex';
+
+    this.initGrid();
+    this.render();
+  }
+
+  toggleInteractiveMenu(forceState = null) {
+    const modal = document.getElementById('interactiveModal');
+    const pauseBtn = document.getElementById('modalPauseBtn');
+    const shouldOpen = (forceState !== null) ? forceState : (modal.style.display !== 'flex');
+
+    if (shouldOpen) {
+      modal.style.display = 'flex';
+      if (!this.isPaused && (this.raceStarted || this.countdownActive)) {
+        this.togglePause();
+      }
+    } else {
+      modal.style.display = 'none';
+      if (this.isPaused) {
+        this.togglePause();
+      }
+    }
+    if (pauseBtn) {
+      pauseBtn.innerText = this.isPaused ? '▶️ RETOMAR CORRIDA' : '⏸️ PAUSAR CORRIDA';
+    }
+  }
+
+  togglePause() {
+    if (!this.raceStarted && !this.countdownActive) return;
+    this.isPaused = !this.isPaused;
+    const pauseBtn = document.getElementById('modalPauseBtn');
+    if (pauseBtn) {
+      pauseBtn.innerText = this.isPaused ? '▶️ RETOMAR CORRIDA' : '⏸️ PAUSAR CORRIDA';
+    }
+    if (this.isPaused) {
+      this.audio.pauseEngine();
+    } else {
+      this.lastTime = performance.now();
+    }
+  }
+
+  startGame() {
+    const activeCard = document.querySelector('.track-card.selected');
+    if (activeCard && activeCard.getAttribute('data-track') === 'random') {
+      const tracks = ['interlagos', 'monza', 'silverstone', 'spa', 'suzuka', 'monaco'];
+      this.selectedTrack = tracks[Math.floor(Math.random() * tracks.length)];
+      this.track = new TopDownTrack(this.selectedTrack);
+    }
+
+    document.getElementById('titleScreen').style.display = 'none';
+    document.getElementById('trackSelectScreen').style.display = 'none';
+    document.getElementById('interactiveModal').style.display = 'none';
+    document.getElementById('hudDriverName').innerText = this.playerName;
+
+    this.audio.init();
+
+    this.raceStarted = false;
+    this.raceFinished = false;
+    this.isPaused = false;
+    this.lap = 1;
+    this.particles = [];
+    this.skidmarks = [];
+
+    this.initGrid();
+    this.startF1Countdown();
+
+    this.lastTime = performance.now();
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  startF1Countdown() {
+    this.countdownActive = true;
+    const overlay = document.getElementById('startLightsOverlay');
+    const text = document.getElementById('gantryText');
+    overlay.style.display = 'flex';
+    text.innerText = 'GRID DE FORMULA 1 PRONTO';
+
+    for (let i = 1; i <= 5; i++) {
+      document.getElementById(`lamp${i}`).classList.remove('lit');
+    }
+
+    const lightStep = (step) => {
+      if (!this.countdownActive) return;
+      if (step <= 5) {
+        document.getElementById(`lamp${step}`).classList.add('lit');
+        this.audio.playBeep(false);
+        setTimeout(() => lightStep(step + 1), 750);
+      } else {
+        const waitTime = 800 + Math.random() * 700;
+        setTimeout(() => {
+          if (!this.countdownActive) return;
+          for (let i = 1; i <= 5; i++) {
+            document.getElementById(`lamp${i}`).classList.remove('lit');
+          }
+          text.innerText = 'LUZES APAGADAS! LARGADA!';
+          text.style.color = '#00ff44';
+          this.audio.playBeep(true);
+          this.audio.startMusic();
+
+          this.raceStarted = true;
+          this.countdownActive = false;
+          this.player.speed = 70;
+          this.racers.forEach(r => {
+            r.speed = 65 + Math.random() * 10;
+          });
+
+          this.lapStartTime = performance.now();
+          this.totalStartTime = performance.now();
+
+          setTimeout(() => {
+            overlay.style.display = 'none';
+            text.style.color = '#00ffff';
+          }, 1200);
+        }, waitTime);
+      }
+    };
+
+    setTimeout(() => lightStep(1), 600);
+  }
+
+  restartGame() {
+    document.getElementById('finishScreen').style.display = 'none';
+    this.startGame();
+  }
+
+  loop(now) {
+    if (!this.lastTime) this.lastTime = now;
+    const dt = Math.min(0.05, (now - this.lastTime) / 1000);
+    this.lastTime = now;
+
+    if (!this.isPaused) {
+      this.update(dt, now);
+    }
+    this.render();
+
+    if (this.raceStarted || this.raceFinished || this.countdownActive || this.isPaused) {
+      requestAnimationFrame((t) => this.loop(t));
+    }
+  }
+
+  update(dt, now) {
+    if (this.countdownActive) {
+      this.audio.updateEngine(0.1);
+      return;
+    }
+
+    const p = this.player;
+
+    if (this.keys.brake) {
+      p.speed = Math.max(0, p.speed - p.brake * dt);
+      if (Math.random() < 0.35) {
+        this.addParticle(p.x, p.y, '#ffffff', 0.3);
+      }
+    } else {
+      p.speed = Math.min(p.maxSpeed, p.speed + p.accel * dt);
+    }
+
+    const speedRatio = p.speed / p.maxSpeed;
+    const dynamicSteer = p.steerSpeed * (0.65 + (1 - speedRatio) * 0.35);
+
+    if (this.keys.left) {
+      p.angle -= dynamicSteer * dt;
+      if (speedRatio > 0.6) this.addSkidmark(p);
+    } else if (this.keys.right) {
+      p.angle += dynamicSteer * dt;
+      if (speedRatio > 0.6) this.addSkidmark(p);
+    }
+
+    p.prevX = p.x;
+    p.prevY = p.y;
+
+    const speedWorld = p.speed * 2.1;
+    p.x += Math.cos(p.angle) * speedWorld * dt;
+    p.y += Math.sin(p.angle) * speedWorld * dt;
+
+    const nearest = this.getNearestTrackPoint(p.x, p.y);
+    const distFromCenter = Math.hypot(p.x - nearest.pt.x, p.y - nearest.pt.y);
+    const halfRoad = this.track.width / 2;
+    const isOnRoad = distFromCenter <= (halfRoad + 22);
+
+    if (!isOnRoad) {
+      p.speed = Math.max(45, p.speed - 160 * dt);
+      if (Math.random() < 0.35) {
+        this.addParticle(p.x, p.y, '#c99a4e', 0.4);
+      }
+    }
+
+    const totalLen = this.track.totalLength;
+    let progressDelta = nearest.dist - p.trackDist;
+    if (progressDelta > totalLen / 2) progressDelta -= totalLen;
+    if (progressDelta < -totalLen / 2) progressDelta += totalLen;
+    p.raceProgress += progressDelta;
+    p.trackDist = nearest.dist;
+    p.distance = nearest.dist;
+    let finished = false;
+
+    const finishX = 0;
+    const pitY = -800;
+    const crossedFinishLine = (p.prevX <= finishX && p.x >= finishX && Math.abs(p.y - pitY) < this.track.width);
+
+    if (!p.hasPassedStartLine && crossedFinishLine) {
+      p.hasPassedStartLine = true;
+    }
+
+    if (p.hasPassedStartLine && p.distance > this.track.totalLength * 0.45 && p.distance < this.track.totalLength * 0.85) {
+      p.halfwayChecked = true;
+    }
+
+    if (p.halfwayChecked && crossedFinishLine) {
+      p.halfwayChecked = false;
+      const lapTime = (now - this.lapStartTime) / 1000;
+      if (lapTime < this.bestLapTime) this.bestLapTime = lapTime;
+      this.audio.playLap();
+
+      if (this.lap >= this.totalLaps) {
+        finished = true;
+      } else {
+        this.lap++;
+        this.lapStartTime = now;
+      }
+    }
+
+    this.updateRacers(dt);
+    if (finished) this.finishRace(now);
+
+    const lookaheadDist = p.speed * 0.28;
+    const targetCamX = p.x + Math.cos(p.angle) * lookaheadDist;
+    const targetCamY = p.y + Math.sin(p.angle) * lookaheadDist;
+    this.camera.x += (targetCamX - this.camera.x) * 4.5 * dt;
+    this.camera.y += (targetCamY - this.camera.y) * 4.5 * dt;
+
+    this.updateParticles(dt);
+    this.audio.updateEngine(p.speed / p.maxSpeed);
+
+    this.updateHUD(now);
+  }
+
+  getNearestTrackPoint(px, py) {
+    let minDistSq = Infinity;
+    let bestPoint = null;
+    let bestDist = 0;
+    const pts = this.track.points;
+    for (let i = 0; i < pts.length; i++) {
+      const start = pts[i];
+      const end = pts[(i + 1) % pts.length];
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const lengthSq = dx * dx + dy * dy;
+      const t = lengthSq ? Math.max(0, Math.min(1, ((px - start.x) * dx + (py - start.y) * dy) / lengthSq)) : 0;
+      const point = { x: start.x + dx * t, y: start.y + dy * t };
+      const dSq = (px - point.x) ** 2 + (py - point.y) ** 2;
+      if (dSq < minDistSq) {
+        minDistSq = dSq;
+        bestPoint = point;
+        bestDist = (this.track.distances[i] + Math.sqrt(lengthSq) * t) % this.track.totalLength;
+      }
+    }
+    return {
+      pt: bestPoint,
+      dist: bestDist
+    };
+  }
+
+  updateRacers(dt) {
+    let carsAhead = 0;
+    const totalLen = this.track.totalLength;
+    const playerLapProgress = this.player.raceProgress;
+
+    for (let i = 0; i < this.racers.length; i++) {
+      const r = this.racers[i];
+
+      if (r.speed < r.maxSpeed) {
+        r.speed = Math.min(r.maxSpeed, r.speed + r.accel * dt);
+      }
+
+      const moveDist = r.speed * 2.2 * dt;
+      r.trackDist = (r.trackDist + moveDist);
+
+      if (r.trackDist >= totalLen) {
+        r.trackDist -= totalLen;
+        r.lap++;
+      }
+
+      for (let j = 0; j < this.racers.length; j++) {
+        if (i === j) continue;
+        const other = this.racers[j];
+        const distAhead = (other.trackDist - r.trackDist + totalLen) % totalLen;
+
+        if (distAhead > 0 && distAhead < 120 && Math.abs(r.laneOffset - other.laneOffset) < 35) {
+          r.targetLaneOffset = (other.laneOffset > 0) ? -45 : 45;
+          r.speed = Math.min(r.speed, other.speed * 0.96);
+        }
+      }
+
+      r.laneOffset += (r.targetLaneOffset - r.laneOffset) * 2.5 * dt;
+
+      const trackPos = this.track.getTrackPosition(r.trackDist, r.laneOffset);
+      r.x = trackPos.x;
+      r.y = trackPos.y;
+      r.angle = trackPos.angle;
+
+      const distToPlayer = Math.hypot(r.x - this.player.x, r.y - this.player.y);
+      if (distToPlayer < 40) {
+        this.audio.playBump();
+        const pushAngle = Math.atan2(this.player.y - r.y, this.player.x - r.x);
+        this.player.x += Math.cos(pushAngle) * 5;
+        this.player.y += Math.sin(pushAngle) * 5;
+        this.player.speed *= 0.94;
+        r.speed *= 0.94;
+        this.addParticle(this.player.x, this.player.y, '#ffffff', 0.25);
+      }
+
+      const botLapProgress = (r.lap - 1) * totalLen + r.trackDist;
+      if (botLapProgress > playerLapProgress) {
+        carsAhead++;
+      }
+    }
+
+    this.player.rank = Math.min(this.totalRacers, 1 + carsAhead);
+  }
+
+  getPlayerProgressIndex() {
+    const nearest = this.getNearestTrackPoint(this.player.x, this.player.y);
+    this.player.trackDist = nearest.dist;
+    return nearest.dist;
+  }
+
+  addSkidmark(car) {
+    if (this.skidmarks.length > 160) this.skidmarks.shift();
+    this.skidmarks.push({
+      x: car.x,
+      y: car.y,
+      alpha: 0.3,
+      angle: car.angle
+    });
+  }
+
+  addParticle(x, y, color, life = 0.4) {
+    this.particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 35,
+      vy: (Math.random() - 0.5) * 35,
+      color,
+      life,
+      maxLife: life,
+      size: 4 + Math.random() * 4
+    });
+  }
+
+  updateParticles(dt) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const pt = this.particles[i];
+      pt.life -= dt;
+      pt.x += pt.vx * dt;
+      pt.y += pt.vy * dt;
+      if (pt.life <= 0) this.particles.splice(i, 1);
+    }
+  }
+
+  updateHUD(now) {
+    const speedEl = document.getElementById('hudSpeed');
+    if (speedEl) speedEl.innerText = Math.floor(this.player.speed);
+
+    const posEl = document.getElementById('hudPos');
+    if (posEl) posEl.innerText = `${this.player.rank}º / ${this.totalRacers}`;
+
+    const lapEl = document.getElementById('hudLap');
+    if (lapEl) lapEl.innerText = `${this.track.name} • ${Math.min(this.lap, this.totalLaps)} / ${this.totalLaps}`;
+
+    const timeEl = document.getElementById('hudTime');
+    if (timeEl && this.raceStarted && !this.raceFinished) {
+      const totalSec = Math.max(0, (now - this.totalStartTime) / 1000);
+      timeEl.innerText = this.formatTime(totalSec);
+    }
+
+    const rpmRatio = Math.min(1.0, this.player.speed / this.player.maxSpeed);
+    const rpmBar = document.getElementById('hudRpm');
+    if (rpmBar) rpmBar.style.width = `${Math.floor(rpmRatio * 100)}%`;
+
+    const leds = [
+      document.getElementById('led1'),
+      document.getElementById('led2'),
+      document.getElementById('led3'),
+      document.getElementById('led4'),
+      document.getElementById('led5'),
+      document.getElementById('led6')
+    ];
+    const numLit = Math.floor(rpmRatio * leds.length);
+    leds.forEach((led, idx) => {
+      if (!led) return;
+      if (idx < numLit) led.classList.add('lit');
+      else led.classList.remove('lit');
+    });
+
+    this.renderRadar();
+  }
+
+  renderRadar() {
+    const ctx = this.radarCtx;
+    const w = this.radarCanvas.width;
+    const h = this.radarCanvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.fillStyle = 'rgba(4, 12, 8, 0.9)';
+    ctx.fillRect(0, 0, w, h);
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let pt of this.track.points) {
+      if (pt.x < minX) minX = pt.x;
+      if (pt.x > maxX) maxX = pt.x;
+      if (pt.y < minY) minY = pt.y;
+      if (pt.y > maxY) maxY = pt.y;
+    }
+
+    const pad = 250;
+    minX -= pad; maxX += pad;
+    minY -= pad; maxY += pad;
+
+    const scaleX = w / (maxX - minX);
+    const scaleY = h / (maxY - minY);
+
+    const toRadarX = (wx) => (wx - minX) * scaleX;
+    const toRadarY = (wy) => (wy - minY) * scaleY;
+
+    ctx.strokeStyle = '#1d5e32';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    for (let i = 0; i <= this.track.points.length; i++) {
+      const pt = this.track.points[i % this.track.points.length];
+      const rx = toRadarX(pt.x);
+      const ry = toRadarY(pt.y);
+      if (i === 0) ctx.moveTo(rx, ry);
+      else ctx.lineTo(rx, ry);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = '#00f0ff';
+    for (let r of this.racers) {
+      ctx.beginPath();
+      ctx.arc(toRadarX(r.x), toRadarY(r.y), 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#ffe600';
+    ctx.beginPath();
+    ctx.arc(toRadarX(this.player.x), toRadarY(this.player.y), 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff0033';
+    ctx.beginPath();
+    ctx.arc(toRadarX(this.player.x), toRadarY(this.player.y), 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  finishRace(now) {
+    this.raceFinished = true;
+    this.raceStarted = false;
+    this.audio.playLap();
+
+    const finishScreen = document.getElementById('finishScreen');
+    const finishTitle = document.getElementById('finishTitle');
+    const finishPos = document.getElementById('finishPos');
+    const finishTime = document.getElementById('finishTime');
+    const bestLapEl = document.getElementById('bestLapTime');
+    const pilotEl = document.getElementById('finishPilotName');
+
+    if (finishScreen) finishScreen.style.display = 'flex';
+    if (pilotEl) pilotEl.innerText = this.playerName;
+    if (finishTitle) {
+      finishTitle.innerText = this.player.rank === 1 ? 'VITÓRIA! P1 NO GRAND PRIX!' : 'BANDEIRA QUADRICULADA!';
+    }
+    if (finishPos) {
+      finishPos.innerText = `VOCÊ TERMINOU EM ${this.player.rank}º LUGAR!`;
+    }
+    const totalSec = (now - this.totalStartTime) / 1000;
+    if (finishTime) finishTime.innerText = this.formatTime(totalSec);
+    if (bestLapEl) bestLapEl.innerText = isFinite(this.bestLapTime) ? this.formatTime(this.bestLapTime) : '--:--.--';
+  }
+
+  formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+  }
+
+  render() {
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.track.render(ctx, this.camera);
+
+    ctx.save();
+    ctx.translate(this.camera.width / 2, this.camera.height / 2);
+    ctx.scale(this.camera.zoom, this.camera.zoom);
+    ctx.translate(-this.camera.x, -this.camera.y);
+
+    for (let sm of this.skidmarks) {
+      ctx.save();
+      ctx.translate(sm.x, sm.y);
+      ctx.rotate(sm.angle);
+      ctx.fillStyle = `rgba(14, 12, 16, ${sm.alpha})`;
+      ctx.fillRect(-12, -15, 24, 4);
+      ctx.fillRect(-12, 11, 24, 4);
+      ctx.restore();
+    }
+
+    for (let r of this.racers) {
+      this.renderF1CarSprite(ctx, r.x, r.y, r.angle, r.livery, r.name, false);
+    }
+
+    this.renderF1CarSprite(
+      ctx,
+      this.player.x,
+      this.player.y,
+      this.player.angle,
+      this.player.livery,
+      this.playerName,
+      true
+    );
+
+    for (let pt of this.particles) {
+      const alpha = pt.life / pt.maxLife;
+      ctx.fillStyle = pt.color;
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, pt.size * (1 - alpha * 0.35), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+
+    ctx.restore();
+  }
+
+  renderF1CarSprite(ctx, x, y, angle, livery, pilotName, isPlayer) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    ctx.beginPath();
+    ctx.ellipse(3, 4, 34, 17, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    let mainCol = '#d40000';
+    let wingCol = '#111111';
+    let accentCol = '#ffffff';
+
+    if (livery === 'williams') { mainCol = '#002f6c'; wingCol = '#ffffff'; accentCol = '#ffd000'; }
+    else if (livery === 'mclaren') { mainCol = '#ffffff'; wingCol = '#ff1801'; accentCol = '#ff1801'; }
+    else if (livery === 'benetton') { mainCol = '#00a352'; wingCol = '#00c3e3'; accentCol = '#ffffff'; }
+    else if (livery === 'jordan') { mainCol = '#ffe600'; wingCol = '#111111'; accentCol = '#00ffff'; }
+    else if (livery === 'lotus') { mainCol = '#0b4a26'; wingCol = '#c5a059'; accentCol = '#ffd000'; }
+    else if (livery === 'sauber') { mainCol = '#003882'; wingCol = '#ffffff'; accentCol = '#00d0ff'; }
+
+    const wheelW = 16;
+    const wheelH = 8;
+    ctx.fillStyle = '#0f0f12';
+
+    ctx.fillRect(14, -18, wheelW, wheelH);
+    ctx.fillRect(14, 10, wheelW, wheelH);
+    ctx.fillRect(-22, -21, wheelW + 2, wheelH + 1);
+    ctx.fillRect(-22, 12, wheelW + 2, wheelH + 1);
+
+    ctx.fillStyle = '#ffd000';
+    ctx.fillRect(18, -16, 8, 4);
+    ctx.fillRect(18, 12, 8, 4);
+    ctx.fillRect(-18, -19, 9, 5);
+    ctx.fillRect(-18, 14, 9, 5);
+
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(18, 0); ctx.lineTo(18, -14);
+    ctx.moveTo(18, 0); ctx.lineTo(18, 14);
+    ctx.moveTo(-14, 0); ctx.lineTo(-14, -16);
+    ctx.moveTo(-14, 0); ctx.lineTo(-14, 16);
+    ctx.stroke();
+
+    ctx.fillStyle = wingCol;
+    ctx.fillRect(24, -17, 6, 34);
+    ctx.fillStyle = accentCol;
+    ctx.fillRect(26, -13, 3, 26);
+
+    ctx.fillStyle = wingCol;
+    ctx.fillRect(-26, -19, 6, 38);
+    ctx.fillStyle = mainCol;
+    ctx.fillRect(-27, -20, 7, 3);
+    ctx.fillRect(-27, 17, 7, 3);
+
+    ctx.fillStyle = mainCol;
+    ctx.beginPath();
+    ctx.moveTo(28, 0);
+    ctx.lineTo(12, -7);
+    ctx.lineTo(-4, -13);
+    ctx.lineTo(-20, -11);
+    ctx.lineTo(-20, 11);
+    ctx.lineTo(-4, 13);
+    ctx.lineTo(12, 7);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#111';
+    ctx.fillRect(2, -12, 6, 3);
+    ctx.fillRect(2, 9, 6, 3);
+
+    ctx.fillStyle = '#08080c';
+    ctx.beginPath();
+    ctx.ellipse(-2, 0, 7, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = isPlayer ? '#ffd000' : accentCol;
+    ctx.beginPath();
+    ctx.arc(-2, 0, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#00f0ff';
+    ctx.fillRect(0, -2, 2, 4);
+
+    const isBraking = isPlayer ? this.keys.brake : false;
+    ctx.fillStyle = isBraking ? '#ff0033' : '#440008';
+    ctx.fillRect(-22, -2, 3, 4);
+    if (isBraking) {
+      ctx.shadowColor = '#ff0033';
+      ctx.shadowBlur = 8;
+      ctx.fillRect(-22, -2, 3, 4);
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(x, y - 30);
+    ctx.fillStyle = isPlayer ? 'rgba(255, 0, 68, 0.92)' : 'rgba(10, 6, 24, 0.86)';
+    ctx.strokeStyle = isPlayer ? '#ffd000' : '#00ffff';
+    ctx.lineWidth = 1.5;
+
+    const tagText = isPlayer ? `⭐ ${pilotName}` : pilotName;
+    ctx.font = 'bold 8px monospace';
+    const txtW = ctx.measureText(tagText).width;
+
+    ctx.fillRect(-txtW / 2 - 5, -8, txtW + 10, 15);
+    ctx.strokeRect(-txtW / 2 - 5, -8, txtW + 10, 15);
+
+    ctx.fillStyle = isPlayer ? '#ffffff' : '#ffe600';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tagText, 0, 0);
+
+    ctx.restore();
+  }
+}
+
+// Inicia o jogo automaticamente após o carregamento da página
+window.addEventListener('load', () => {
+  new TopDownF1Game();
+});
