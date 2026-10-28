@@ -763,6 +763,9 @@ class TopDownF1Game {
     this.session = 'menu';
     this.gridPosition = 12;
     this.sessionElapsed = 0;
+    this.trackLimitPenalty = 0;
+    this.trackLimitExcursion = false;
+    this.trackLimitRecovery = 0;
     this.sessionToken = 0;
 
     this.particles = [];
@@ -1262,6 +1265,9 @@ class TopDownF1Game {
     this.session = 'qualifying';
     this.gridPosition = 12;
     this.sessionElapsed = 0;
+    this.trackLimitPenalty = 0;
+    this.trackLimitExcursion = false;
+    this.trackLimitRecovery = 0;
     this.qualifyingStarted = false;
     this.qualifyingSector = 0;
     this.bestLapTime = Infinity;
@@ -1349,6 +1355,9 @@ class TopDownF1Game {
     cancelAnimationFrame(this.animationFrame);
     this.session = 'race';
     this.sessionElapsed = 0;
+    this.trackLimitPenalty = 0;
+    this.trackLimitExcursion = false;
+    this.trackLimitRecovery = 0;
     this.resetControls();
     this.lap = 1;
     this.bestLapTime = Infinity;
@@ -1400,6 +1409,9 @@ class TopDownF1Game {
           this.countdownActive = false;
           this.player.speed = 0;
           this.sessionElapsed = 0;
+    this.trackLimitPenalty = 0;
+    this.trackLimitExcursion = false;
+    this.trackLimitRecovery = 0;
           this.racers.forEach(r => {
             r.speed = 0;
           });
@@ -1487,6 +1499,23 @@ class TopDownF1Game {
       if (Math.random() < 0.35) {
         this.addParticle(p.x, p.y, '#c99a4e', 0.4);
       }
+    }
+
+    // One sanction per excursion; returning inside for half a second rearms it.
+    // Serve the slowdown on the road so staying in the runoff cannot erase it.
+    if (!isOnRoad) {
+      this.trackLimitRecovery = 0;
+      if (!this.trackLimitExcursion) {
+        this.trackLimitExcursion = true;
+        this.trackLimitPenalty += 3;
+      }
+    } else {
+      this.trackLimitRecovery += dt;
+      if (this.trackLimitRecovery >= 0.5) this.trackLimitExcursion = false;
+    }
+    if (this.trackLimitPenalty > 0) {
+      p.speed = Math.min(p.speed, 80);
+      if (isOnRoad) this.trackLimitPenalty = Math.max(0, this.trackLimitPenalty - dt);
     }
 
     const totalLen = this.track.totalLength;
@@ -1716,6 +1745,15 @@ class TopDownF1Game {
   }
 
   updateHUD(now) {
+    const penaltyEl = document.getElementById('trackLimitNotice');
+    if (penaltyEl) {
+      const remaining = this.trackLimitPenalty || 0;
+      penaltyEl.hidden = remaining <= 0 || !this.raceStarted;
+      penaltyEl.textContent = this.trackLimitExcursion && this.trackLimitRecovery === 0
+        ? `FORA DA PISTA — VOLTE PARA CUMPRIR ${remaining.toFixed(1)}s DE PENALIDADE`
+        : `PENALIDADE: ${remaining.toFixed(1)}s — LIMITE DE 80 KM/H`;
+    }
+
     const speedEl = document.getElementById('hudSpeed');
     if (speedEl) speedEl.innerText = Math.floor(this.player.speed);
 

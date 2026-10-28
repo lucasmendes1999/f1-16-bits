@@ -60,6 +60,7 @@
 
     <!-- HUD Overlay Top-Down da Corrida -->
     <div id="hud">
+      <div id="trackLimitNotice" class="track-limit-notice" role="status" aria-live="off" hidden></div>
       <div class="hud-top">
         <div class="hud-box gold">
           <div class="hud-title">POSIÇÃO F1</div>
@@ -305,14 +306,11 @@
         <h2 id="podiumTitle">Os melhores da pista.</h2>
         <ol id="podiumPlaces" class="podium-places" aria-label="Os três primeiros colocados"></ol>
       </section>
-      <div class="hud-box gold" style="margin-bottom: 18px; min-width: 290px;">
-        <div class="hud-title">SEU RESULTADO</div>
-        <div class="hud-val" id="finishPilotName" style="font-size: 16px; color: #00ffcc; margin-bottom: 6px;">A. SENNA</div>
-        <div class="hud-title">TEMPO TOTAL DE PROVA</div>
-        <div class="hud-val" id="finishTime" style="font-size: 16px; color: #00ffff; margin-bottom: 6px;">00:00.00</div>
-        <div class="hud-title">MELHOR VOLTA RÁPIDA</div>
-        <div class="hud-val" id="bestLapTime" style="font-size: 14px; color: #ffe600;">00:00.00</div>
-      </div>
+      <section class="finish-stats" aria-label="Seu resultado">
+        <div class="finish-stat"><span>SEU PILOTO</span><strong id="finishPilotName">A. SENNA</strong><small>BANDEIRA QUADRICULADA</small></div>
+        <div class="finish-stat"><span>TEMPO DE PROVA</span><strong id="finishTime">00:00.00</strong><small>TEMPO TOTAL</small></div>
+        <div class="finish-stat"><span>MELHOR VOLTA</span><strong id="bestLapTime">00:00.00</strong><small>SUA VOLTA MAIS RÁPIDA</small></div>
+      </section>
       <div class="track-actions">
         <button class="start-btn" id="restartBtn">DISPUTAR NOVO GP</button>
         <button class="diff-btn" id="finishHomeBtn" type="button">VOLTAR AO MENU PRINCIPAL</button>
