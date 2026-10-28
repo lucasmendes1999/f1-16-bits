@@ -798,12 +798,12 @@ class TopDownF1Game {
   getDifficultyMod() {
     switch (this.difficulty) {
       case 'easy':
-        return { speed: 0.86, accel: 0.85 };
+        return { speed: 0.86, accel: 0.85, qualifyingPace: 0.8 };
       case 'hard':
-        return { speed: 1.04, accel: 1.05 };
+        return { speed: 1.04, accel: 1.05, qualifyingPace: 1.04 };
       case 'medium':
       default:
-        return { speed: 0.96, accel: 0.98 };
+        return { speed: 1.0, accel: 1.02, qualifyingPace: 1.04 };
     }
   }
 
@@ -1100,10 +1100,11 @@ class TopDownF1Game {
     this.skidmarks = [];
 
     this.initGrid();
-    // Simulated qualifying pace allows for braking and cornering during a full lap.
+    // Qualifying has its own pace so the simulated times remain competitive.
+    const qualifyingPace = this.getDifficultyMod().qualifyingPace;
     this.qualifyingRivals = this.racers.map(racer => ({
       name: racer.name,
-      time: this.track.totalLength / (racer.maxSpeed * 2.2 * 0.8) + 0.8
+      time: this.track.totalLength / (racer.maxSpeed * 2.2 * qualifyingPace) + 0.8
     }));
     this.racers = [];
     this.player.x = -650;
