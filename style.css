@@ -748,7 +748,7 @@ background: repeating-linear-gradient(0deg, transparent 0 3px, #00000016 3px 4px
 .home-touch-guide { display: none; }
 #titleScreen .developer-credit { margin: 0; font: 11px/1.7 sans-serif; color: #7f8b9c; text-align: right; }
 #titleScreen .developer-credit strong { color: #c2cad3; font-weight: normal; }
-@media (min-width: 1400px) {
+@media (min-width: 1400px) and (min-height: 701px) {
 .home-shell { width: min(1760px, calc(100vw - 120px)); }
 .home-header { padding: 16px 0 26px; }
 .home-brand { font-size: 14px; }
@@ -777,6 +777,7 @@ background: repeating-linear-gradient(0deg, transparent 0 3px, #00000016 3px 4px
 .home-control-guide kbd { font-size: 12px; }
 #titleScreen .developer-credit { font-size: 13px; }
 }
+
 
 @media (max-width: 850px) {
 .home-main { gap: 26px; }
@@ -1087,4 +1088,89 @@ padding-right: max(12px, env(safe-area-inset-right));
   .podium-badge { font-size: 27px; }
   .podium-step { font-size: 32px; }
   #finishScreen .track-actions button { width: 100%; }
+}
+
+/* Celular deitado: prioriza a altura disponivel e preserva as areas de toque. */
+@media (orientation: landscape) and (max-height: 700px) {
+  #titleScreen, #trackSelectScreen, #finishScreen, #interactiveModal {
+    padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  #titleScreen { justify-content: flex-start; }
+  .home-shell { width: min(1120px, 100%); margin: 0 auto; }
+  .home-header { padding: 0 0 8px; gap: 12px; }
+  .home-brand { font-size: 9px; }
+  .home-edition { font-size: 8px; letter-spacing: 0; }
+  .home-main { grid-template-columns: minmax(0, .8fr) minmax(0, 1.6fr); align-items: start; gap: 18px; padding: 12px 0; }
+  .home-showcase { padding-top: 8px; }
+  .home-eyebrow { font-size: 8px; letter-spacing: .4px; margin-bottom: 8px; }
+  #homeTitle { font-size: clamp(21px, 3.4vw, 36px); letter-spacing: -1.5px; }
+  #homeTitle .home-title-outline { font-size: .45em; margin-top: 4px; }
+  .home-intro { font-size: 12px; line-height: 1.5; margin-top: 10px; }
+  .home-car-stage { height: clamp(80px, 24dvh, 145px); margin: 0; }
+  .home-car-number { font-size: 100px; }
+  .home-car-caption { display: none; }
+  .home-features { gap: 6px; margin-top: 4px; padding-top: 8px; }
+  .home-features > span { font-size: 7px; }
+  .home-features b { font-size: 17px; }
+  .home-entry { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; padding: 14px; border-radius: 9px; }
+  .home-entry-top { grid-column: 1 / -1; font-size: 9px; }
+  .home-entry h2 { grid-column: 1 / -1; margin: 0; font-size: 20px; }
+  .home-entry h2 br { display: none; }
+  #titleScreen .driver-name-box { grid-column: 1; margin: 0; gap: 5px; }
+  #titleScreen .driver-name-box label, .home-difficulty legend, .car-customization legend { font-size: 9px; letter-spacing: 0; }
+  #titleScreen .driver-input { min-height: 44px; padding: 8px; font-size: 16px; width: 100%; min-width: 0; }
+  .home-difficulty { grid-column: 1; min-width: 0; }
+  #titleScreen .diff-group { gap: 4px; margin: 0; }
+  #titleScreen .diff-btn { min-height: 44px; padding: 8px 2px; font-size: 7px; }
+  #titleScreen .diff-btn > span { display: none; }
+  .car-customization { grid-column: 2; grid-row: 3 / 5; margin: 0; }
+  .car-customization legend { margin-bottom: 5px; }
+  .garage-preview { padding: 0 4px 4px; }
+  #carPreview { height: 56px; }
+  #carPaintName { font-size: 8px; letter-spacing: 0; }
+  .car-paint-presets { gap: 4px; margin: 6px 0; }
+  .car-paint-presets button { flex: 1; min-width: 0; max-width: 44px; height: 44px; }
+  .car-color-controls { gap: 4px; }
+  .car-color-controls label { font-size: 8px; }
+  .car-color-controls input { width: 100%; height: 44px; }
+  .car-customization > p { display: none; }
+  #titleScreen .start-btn { grid-column: 1 / -1; min-height: 44px; padding: 8px 12px; font-size: 9px; }
+  .home-next-step { grid-column: 1 / -1; margin: 0; font-size: 10px; }
+  #titleScreen .install-panel { grid-column: 1 / -1; margin: 0; padding-top: 6px; }
+  .home-footer { flex-direction: row; padding: 8px 0 0; gap: 12px; }
+  .home-touch-guide, #titleScreen .developer-credit { font-size: 9px; }
+
+  .circuit-header { padding-bottom: 8px; }
+  .circuit-heading { margin: 12px 0 8px; }
+  .circuit-heading h1 { font-size: 26px; margin: 4px 0; }
+  #trackSelectScreen .qualify-note { font-size: 12px; }
+  #trackSelectScreen .track-cards-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+  #trackSelectScreen .track-card { padding: 10px; gap: 5px; }
+  .circuit-preview { height: 54px; }
+  #trackSelectScreen .track-card-title { font-size: 8px; }
+  #trackSelectScreen .track-card-desc { font-size: 11px; }
+  #trackSelectScreen .race-laps-setting { padding: 8px 12px; }
+  #trackSelectScreen .track-actions { margin-top: 12px; }
+  .modal-content-box { max-width: 640px; width: 100%; margin: auto; padding: 14px; }
+  .modal-title { font-size: 12px; line-height: 1.6; }
+  .modal-options-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .modal-btn { min-width: 0; overflow-wrap: anywhere; font-size: 9px; padding: 8px; }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse),
+       (orientation: landscape) and (max-height: 700px) and (max-width: 900px) {
+  .hud-top { display: flex; gap: 6px; }
+  .top-right-wrap { flex-direction: column; align-items: flex-end; }
+  .top-action-row { flex-wrap: nowrap; }
+  .hud-title { font-size: 6px; }
+  .hud-val { font-size: 9px; }
+  #radarCanvas { width: 80px; height: 50px; }
+  .hud-bottom { margin-bottom: 0; display: flex; justify-content: center; padding: 0 180px; }
+  .dashboard-panel { min-width: 0; padding: 4px 8px; gap: 6px; }
+  .driver-badge-hud, .auto-badge { display: none; }
+  .speedo-num { font-size: 28px; line-height: 28px; }
+  .tachometer-wrap { width: 55px; }
+  .d-pad .t-btn { width: 64px; height: 64px; border-radius: 14px; }
+  .t-brake { width: 76px; height: 64px; }
+  #startLightsOverlay { top: 28%; }
 }
