@@ -583,6 +583,14 @@ border: 1px dashed rgba(255,255,255,0.25);
 max-width: 620px;
 }
 
+.developer-credit {
+margin-top: 16px;
+color: #d1c5e8;
+font-size: 8px;
+line-height: 1.8;
+text-align: center;
+}
+
 /* Controles de Toque Mobile */
 #touch-controls {
 position: absolute;
