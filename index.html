@@ -192,39 +192,39 @@
     <!-- Menu Dedicado de Seleção de Pistas -->
     <div id="trackSelectScreen" class="screen-overlay" style="display: none;">
       <div class="track-modal-box">
-        <div class="retro-title" style="font-size: 22px; margin-bottom: 4px;">F1 16-BITS</div>
-        <div class="retro-sub" style="margin-bottom: 8px;">ESCOLHA O CIRCUITO DO GRAND PRIX</div>
+        <header class="circuit-header"><span class="home-brand"><span class="home-brand-mark" aria-hidden="true">///</span> LM RACING</span><span>CONFIGURAÇÃO DO GP · 02 / 02</span></header>
+        <div class="circuit-heading"><p>SEU PRÓXIMO DESAFIO</p><h1>Escolha seu circuito.</h1><span>06 PISTAS LENDÁRIAS · UMA POLE EM JOGO</span></div>
         <p class="qualify-note">Faça uma volta de classificação com a pista livre para definir sua posição de largada.</p>
 
         <div class="track-cards-grid">
-          <div class="track-card selected" data-track="interlagos">
+          <button type="button" class="track-card selected" data-track="interlagos" aria-pressed="true">
             <div class="track-card-title">🇧🇷 INTERLAGOS</div>
             <div class="track-card-desc">S do Senna fluido, Reta Oposta, Ferradura, Bico de Pato e subida da vitória.</div>
-          </div>
-          <div class="track-card" data-track="monza">
+          </button>
+          <button type="button" class="track-card" data-track="monza" aria-pressed="false">
             <div class="track-card-title">🇮🇹 MONZA</div>
             <div class="track-card-desc">O Templo da Velocidade. Retas gigantescas, chicanes Rettifilo e Ascari, e a Parabólica.</div>
-          </div>
-          <div class="track-card" data-track="silverstone">
+          </button>
+          <button type="button" class="track-card" data-track="silverstone" aria-pressed="false">
             <div class="track-card-title">🇬🇧 SILVERSTONE</div>
             <div class="track-card-desc">Traçado clássico e técnico. Copse, curvas lendárias Maggotts e Becketts e Reta Hangar.</div>
-          </div>
-          <div class="track-card" data-track="spa">
+          </button>
+          <button type="button" class="track-card" data-track="spa" aria-pressed="false">
             <div class="track-card-title">🇧🇪 SPA-FRANCORCHAMPS</div>
             <div class="track-card-desc">Montanha-russa da F1. Grampo La Source, subida épica da Eau Rouge e Pouhon veloz.</div>
-          </div>
-          <div class="track-card" data-track="suzuka">
+          </button>
+          <button type="button" class="track-card" data-track="suzuka" aria-pressed="false">
             <div class="track-card-title">🇯🇵 SUZUKA</div>
             <div class="track-card-desc">Técnico e desafiador. Os "S" de alta aderência, Degner, Grampo fechado e a curva rápida 130R.</div>
-          </div>
-          <div class="track-card" data-track="monaco">
+          </button>
+          <button type="button" class="track-card" data-track="monaco" aria-pressed="false">
             <div class="track-card-title">🇲🇨 MÔNACO</div>
             <div class="track-card-desc">O lendário circuito de rua. Subida do Cassino, Grampo mais lento da F1, Túnel e Piscina.</div>
-          </div>
-          <div class="track-card" data-track="random">
+          </button>
+          <button type="button" class="track-card" data-track="random" aria-pressed="false">
             <div class="track-card-title">🎲 GP ALEATÓRIO</div>
             <div class="track-card-desc">Sorteia qualquer autódromo oficial da temporada de forma surpresa!</div>
-          </div>
+          </button>
         </div>
 
         <div class="race-laps-setting">

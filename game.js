@@ -871,8 +871,47 @@ class TopDownF1Game {
   setupTrackCards() {
     const cards = document.querySelectorAll('.track-card');
     cards.forEach(card => {
+      const preview = document.createElement('canvas');
+      preview.width = 320;
+      preview.height = 140;
+      preview.className = 'circuit-preview';
+      preview.setAttribute('aria-hidden', 'true');
+      card.prepend(preview);
+      const ctx = preview.getContext('2d');
+      if (card.dataset.track === 'random') {
+        ctx.fillStyle = '#ffe149';
+        ctx.font = 'bold 64px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('?', 160, 94);
+      } else {
+        const points = new TopDownTrack(card.dataset.track).points;
+        const xs = points.map(p => p.x), ys = points.map(p => p.y);
+        const minX = Math.min(...xs), minY = Math.min(...ys);
+        const width = Math.max(...xs) - minX, height = Math.max(...ys) - minY;
+        const scale = Math.min(264 / width, 100 / height);
+        const ox = (320 - width * scale) / 2, oy = (140 - height * scale) / 2;
+        ctx.beginPath();
+        points.forEach((p, i) => {
+          const x = (p.x - minX) * scale + ox, y = (p.y - minY) * scale + oy;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#263a47';
+        ctx.lineWidth = 10;
+        ctx.stroke();
+        ctx.strokeStyle = '#b2d7d4';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = '#ee2346';
+        ctx.fillRect(ox + (points[0].x - minX) * scale - 4, oy + (points[0].y - minY) * scale - 4, 8, 8);
+      }
       card.addEventListener('click', () => {
-        cards.forEach(c => c.classList.remove('selected'));
+        cards.forEach(c => {
+          c.classList.remove('selected');
+          c.setAttribute('aria-pressed', 'false');
+        });
+        card.setAttribute('aria-pressed', 'true');
         card.classList.add('selected');
         const choice = card.getAttribute('data-track');
         if (choice === 'random') {
