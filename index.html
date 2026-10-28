@@ -111,35 +111,84 @@
 
     <!-- Tela Inicial com Nome do Piloto e Dificuldade -->
     <div id="titleScreen" class="screen-overlay">
-      <div class="retro-title">F1 16-BITS</div>
-      <div class="retro-sub">VISÃO AÉREA TOP-DOWN • GRAND PRIX CLÁSSICO</div>
+      <div class="home-shell">
+        <header class="home-header">
+          <span class="home-brand"><span class="home-brand-mark" aria-hidden="true">///</span> LM RACING</span>
+          <span class="home-edition"><span aria-hidden="true"></span> GRAND PRIX · 16-BIT EDITION</span>
+        </header>
 
-      <div class="driver-name-box">
-        <label for="playerNameInput">DIGITE O NOME DO SEU PILOTO:</label>
-        <input type="text" id="playerNameInput" class="driver-input" maxlength="14" value="A. SENNA" placeholder="SEU NOME">
-      </div>
+        <div class="home-main">
+          <section class="home-showcase" aria-labelledby="homeTitle">
+            <p class="home-eyebrow">O ESPÍRITO DOS CLÁSSICOS. A SUA CORRIDA.</p>
+            <h1 id="homeTitle">F1 <span>16-BITS</span><span class="home-title-outline" aria-hidden="true">GRAND PRIX</span></h1>
+            <p class="home-intro">Conquiste a pole. Encontre a tangente.<br>Faça história na última volta.</p>
+            <div class="home-car-stage" aria-hidden="true">
+              <div class="home-speed-line home-speed-line-one"></div>
+              <div class="home-speed-line home-speed-line-two"></div>
+              <span class="home-car-number">01</span>
+              <svg class="home-car" viewBox="0 0 480 240" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="carRed" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ff453c"/><stop offset=".5" stop-color="#ef1837"/><stop offset="1" stop-color="#8b0727"/></linearGradient>
+                  <linearGradient id="carTire" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#3e414e"/><stop offset=".4" stop-color="#11151e"/><stop offset="1" stop-color="#03050a"/></linearGradient>
+                </defs>
+                <ellipse cx="239" cy="137" rx="195" ry="70" fill="#000" opacity=".45"/>
+                <g stroke="#070a12" stroke-width="4" stroke-linejoin="round">
+                  <path d="M108 66L170 91M108 174L170 149M335 73L301 98M335 167L301 142" stroke="#777d8b" stroke-width="7"/>
+                  <rect x="68" y="38" width="65" height="53" rx="8" fill="url(#carTire)"/>
+                  <rect x="68" y="149" width="65" height="53" rx="8" fill="url(#carTire)"/>
+                  <rect x="310" y="43" width="54" height="48" rx="7" fill="url(#carTire)"/>
+                  <rect x="310" y="149" width="54" height="48" rx="7" fill="url(#carTire)"/>
+                  <path d="M62 61H83V179H62Z" fill="#ed2441"/>
+                  <path d="M88 94L170 87L211 66L274 77L311 103L416 111L430 120L416 129L311 137L274 163L211 174L170 153L88 146Z" fill="url(#carRed)"/>
+                  <path d="M180 90L217 77L246 85L230 106H177ZM180 150L217 163L246 155L230 134H177Z" fill="#b20c2f"/>
+                  <path d="M238 103L268 96L294 109V131L268 144L238 137Z" fill="#101b2c"/>
+                  <ellipse cx="263" cy="120" rx="17" ry="18" fill="#ffe14b"/>
+                  <path d="M258 105L273 110V129L258 135Z" fill="#00bfc3" stroke-width="2"/>
+                  <path d="M291 112H409V128H291" fill="#ff4850"/>
+                  <path d="M390 65H410V175H390Z" fill="#ecebdc"/>
+                  <path d="M399 65H416V175H399" fill="#161c28"/>
+                  <path d="M96 100H155V140H96Z" fill="#f5e9cb"/>
+                </g>
+                <g fill="#ffe14b"><path d="M180 115H214V125H180Z"/><path d="M316 115H350V125H316Z"/></g>
+                <g stroke="#64717f" opacity=".4" stroke-width="2"><path d="M80 47H120M80 54H120M80 183H120M80 190H120M320 52H354M320 184H354"/></g>
+                <text x="111" y="129" fill="#14151d" font-family="monospace" font-size="26" font-weight="bold">1</text>
+              </svg>
+              <div class="home-car-caption"><span>MONOPOSTO / 01</span><span>PURO INSTINTO.</span></div>
+            </div>
+            <div class="home-features"><span><b>06</b> CIRCUITOS</span><span><b>12</b> PILOTOS</span><span><b>01</b> OBJETIVO: VENCER</span></div>
+          </section>
 
-      <div style="font-size: 8px; color: #00ffff; margin-bottom: 6px; letter-spacing: 1px;">SELECIONE A DIFICULDADE:</div>
-      <div class="diff-group">
-        <button class="diff-btn" data-diff="easy">🟢 FÁCIL</button>
-        <button class="diff-btn selected" data-diff="medium">🟡 MÉDIO</button>
-        <button class="diff-btn" data-diff="hard">🔴 DIFÍCIL</button>
-      </div>
+          <section class="home-entry" aria-labelledby="entryTitle">
+            <div class="home-entry-top"><span>INSCRIÇÃO DO PILOTO</span><span aria-hidden="true">01 / 02</span></div>
+            <h2 id="entryTitle">Seu lugar no grid<br>começa aqui.</h2>
+            <div class="driver-name-box">
+              <label for="playerNameInput">01 — NOME DO PILOTO</label>
+              <input type="text" id="playerNameInput" class="driver-input" maxlength="14" value="A. SENNA" placeholder="SEU NOME" autocomplete="off" spellcheck="false">
+            </div>
+            <fieldset class="home-difficulty">
+              <legend>02 — ESCOLHA SEU DESAFIO</legend>
+              <div class="diff-group">
+                <button type="button" class="diff-btn" data-diff="easy">FÁCIL<span>Aqueça os pneus</span></button>
+                <button type="button" class="diff-btn selected" data-diff="medium">MÉDIO<span>Dispute cada curva</span></button>
+                <button type="button" class="diff-btn" data-diff="hard">DIFÍCIL<span>No limite</span></button>
+              </div>
+            </fieldset>
+            <button class="start-btn" id="startBtn">VAMOS PARA A PISTA <span aria-hidden="true">↗</span></button>
+            <p class="home-next-step">A seguir: circuito, voltas e classificação.</p>
+            <div id="installPanel" class="install-panel" hidden>
+              <button id="installBtn" class="install-btn" type="button" aria-describedby="installHelp">COMO INSTALAR NO CELULAR</button>
+              <p id="installHelp" class="install-help" role="status" hidden></p>
+            </div>
+          </section>
+        </div>
 
-      <button class="start-btn" id="startBtn">ALINHAR NO GRID F1 ❯</button>
-      <p class="developer-credit">Desenvolvido por Lucas Mendes</p>
-      <div id="installPanel" class="install-panel" hidden>
-        <button id="installBtn" class="install-btn" type="button" aria-describedby="installHelp">COMO INSTALAR NO CELULAR</button>
-        <p id="installHelp" class="install-help" role="status" hidden></p>
-      </div>
-
-      <div class="controls-hint">
-        🏁 <b>VISÃO AÉREA REAL:</b> Acompanhe todas as disputas e ultrapassagens do grid de cima!<br>
-        ⚡ <b>ACELERAÇÃO PURA DE F1:</b> Sem nitro artificial. Controle as tangentes nas curvas e use o freio quando necessário.<br>
-        🎮 <b>CONTROLES:</b> [ESQUERDA / DIREITA] ou [A / D] para esterçar • [ESPAÇO] para frear • [P] ou botão [MENU] para Opções.
+        <footer class="home-footer">
+          <div class="home-control-guide"><span><kbd>←</kbd> <kbd>→</kbd> DIREÇÃO</span><span><kbd>ESPAÇO</kbd> FREIO</span><span><kbd>P</kbd> PAUSA</span></div>
+          <span class="home-touch-guide">CONTROLES NA TELA · ACELERAÇÃO AUTOMÁTICA</span>
+          <p class="developer-credit">Desenvolvido por <strong>Lucas Mendes</strong></p>
+        </footer>
       </div>
     </div>
-
     <!-- Menu Dedicado de Seleção de Pistas -->
     <div id="trackSelectScreen" class="screen-overlay" style="display: none;">
       <div class="track-modal-box">
