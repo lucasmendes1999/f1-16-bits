@@ -1,6 +1,6 @@
 // Increment this version whenever the local game files change.
 const CACHE_PREFIX = 'f1-16-bits-';
-const CACHE_NAME = `${CACHE_PREFIX}v7`;
+const CACHE_NAME = `${CACHE_PREFIX}v8`;
 const APP_FILES = [
   './', './index.html', './style.css', './game.js', './pwa.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png',
@@ -8,7 +8,9 @@ const APP_FILES = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_FILES)));
+  event.waitUntil(caches.open(CACHE_NAME).then(cache =>
+    cache.addAll(APP_FILES.map(path => new Request(path, { cache: 'reload' })))
+  ));
 });
 
 self.addEventListener('activate', event => {

@@ -800,10 +800,10 @@ class TopDownF1Game {
       case 'easy':
         return { speed: 0.86, accel: 0.85, qualifyingPace: 0.8 };
       case 'hard':
-        return { speed: 1.04, accel: 1.05, qualifyingPace: 1.04 };
+        return { speed: 1.10, accel: 1.12, qualifyingPace: 1.14 };
       case 'medium':
       default:
-        return { speed: 1.0, accel: 1.02, qualifyingPace: 1.04 };
+        return { speed: 1.04, accel: 1.07, qualifyingPace: 1.12 };
     }
   }
 
