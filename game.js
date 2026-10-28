@@ -800,10 +800,10 @@ class TopDownF1Game {
       case 'easy':
         return { speed: 0.86, accel: 0.85, qualifyingPace: 0.8 };
       case 'hard':
-        return { speed: 1.20, accel: 1.35, qualifyingPace: 1.12 };
+        return { speed: 1.14, accel: 1.24, qualifyingPace: 1.00 };
       case 'medium':
       default:
-        return { speed: 1.12, accel: 1.22, qualifyingPace: 1.10 };
+        return { speed: 1.08, accel: 1.14, qualifyingPace: 1.00 };
     }
   }
 
@@ -967,6 +967,10 @@ class TopDownF1Game {
     closeBtn.addEventListener('click', () => this.toggleInteractiveMenu(false));
 
     pauseBtn.addEventListener('click', () => {
+      if (this.isPaused) {
+        this.toggleInteractiveMenu(false);
+        return;
+      }
       this.togglePause();
       pauseBtn.innerText = this.isPaused ? '▶️ RETOMAR CORRIDA' : '⏸️ PAUSAR CORRIDA';
     });
@@ -1212,9 +1216,10 @@ class TopDownF1Game {
 
           this.raceStarted = true;
           this.countdownActive = false;
-          this.player.speed = 70;
+          this.player.speed = 0;
+          this.sessionElapsed = 0;
           this.racers.forEach(r => {
-            r.speed = 65 + Math.random() * 10;
+            r.speed = 0;
           });
 
           this.lapStartTime = performance.now();
@@ -1288,6 +1293,7 @@ class TopDownF1Game {
     const speedWorld = p.speed * 2.1;
     p.x += Math.cos(p.angle) * speedWorld * dt;
     p.y += Math.sin(p.angle) * speedWorld * dt;
+    this.constrainPlayerToTrack();
 
     const nearest = this.getNearestTrackPoint(p.x, p.y);
     const distFromCenter = Math.hypot(p.x - nearest.pt.x, p.y - nearest.pt.y);
@@ -1367,6 +1373,24 @@ class TopDownF1Game {
     this.updateHUD(now);
   }
 
+  constrainPlayerToTrack() {
+    const p = this.player;
+    const nearest = this.getNearestTrackPoint(p.x, p.y);
+    const dx = p.x - nearest.pt.x;
+    const dy = p.y - nearest.pt.y;
+    const distance = Math.hypot(dx, dy);
+    // Leave a runoff area beyond both edges of the road.
+    const limit = this.track.width / 2 + 240;
+    if (distance <= limit) return;
+
+    p.x = nearest.pt.x + dx / distance * limit;
+    p.y = nearest.pt.y + dy / distance * limit;
+    p.speed = Math.min(p.speed, 80);
+    // A position correction must not count as crossing the finish line.
+    p.prevX = p.x;
+    p.prevY = p.y;
+  }
+
   getNearestTrackPoint(px, py) {
     let minDistSq = Infinity;
     let bestPoint = null;
@@ -1429,8 +1453,14 @@ class TopDownF1Game {
           targetSpeed = Math.min(targetSpeed, other.speed * Math.max(0.45, other.gap / 90));
         }
       }
+      // Match world acceleration during launch; bots use a different distance scale.
+      const launchAcceleration = this.player.accel * 2.1 / 2.2;
+      const acceleration = this.sessionElapsed <= 3 ? Math.min(r.accel, launchAcceleration) : r.accel;
+      if (this.sessionElapsed <= 3) {
+        targetSpeed = Math.min(targetSpeed, this.player.maxSpeed * 2.1 / 2.2);
+      }
       r.speed = r.speed < targetSpeed
-        ? Math.min(targetSpeed, r.speed + r.accel * dt)
+        ? Math.min(targetSpeed, r.speed + acceleration * dt)
         : Math.max(targetSpeed, r.speed - 260 * dt);
 
       r.laneOffset += (r.targetLaneOffset - r.laneOffset) * 2.5 * dt;
