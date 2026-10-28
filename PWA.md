@@ -13,9 +13,11 @@ o jogo pode abrir offline. As fontes do Google dependem de rede ou do cache do
 navegador; sem elas, o jogo usa as fontes alternativas do CSS.
 
 Ao alterar arquivos do jogo, incremente a versão de CACHE_NAME em sw.js.
-A nova versão aguarda o fechamento das abas do jogo para entrar em uso, evitando
-trocar arquivos durante uma corrida. Os caminhos relativos permitem hospedagem
-tanto na raiz quanto em uma subpasta.
+A nova versão é ativada depois que todos os arquivos são baixados. O jogo recarrega
+automaticamente no menu inicial; durante uma corrida, aguarda o retorno ao menu.
+Abas que ainda usam versões antigas do código podem precisar de uma recarga manual
+na primeira atualização. Os caminhos relativos permitem hospedagem na raiz ou em
+uma subpasta.
 
 Para validar no navegador: verifique Manifest e Service Workers nas ferramentas de
 desenvolvedor, aguarde a ativação, recarregue em modo offline e teste a instalação.

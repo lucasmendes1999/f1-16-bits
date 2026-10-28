@@ -1,6 +1,6 @@
 // Increment this version whenever the local game files change.
 const CACHE_PREFIX = 'f1-16-bits-';
-const CACHE_NAME = `${CACHE_PREFIX}v16`;
+const CACHE_NAME = `${CACHE_PREFIX}v18`;
 const APP_FILES = [
   './', './index.html', './style.css', './game.js', './pwa.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png',
@@ -8,9 +8,12 @@ const APP_FILES = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache =>
-    cache.addAll(APP_FILES.map(path => new Request(path, { cache: 'reload' })))
-  ));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(APP_FILES.map(path => new Request(path, { cache: 'reload' })));
+    // Loaded races keep their current code; the next navigation uses the new version.
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {

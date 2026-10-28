@@ -74,8 +74,36 @@ installButton.addEventListener('click', async () => {
 updateInstallPanel();
 
 if ('serviceWorker' in navigator && window.isSecureContext) {
+  let hadController = Boolean(navigator.serviceWorker.controller);
+  let updateReady = false;
+  let reloading = false;
+  const reloadAtMenu = () => {
+    const title = document.getElementById('titleScreen');
+    if (updateReady && !reloading && title && getComputedStyle(title).display !== 'none') {
+      reloading = true;
+      window.location.reload();
+    }
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // First-time offline setup does not require a reload.
+    if (hadController) updateReady = true;
+    hadController = true;
+    reloadAtMenu();
+  });
+  const title = document.getElementById('titleScreen');
+  if (title) new MutationObserver(reloadAtMenu).observe(title, { attributes: true, attributeFilter: ['style', 'class'] });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(error => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(registration => {
+      let lastCheck = Date.now();
+      const checkForUpdate = () => {
+        if (document.hidden || Date.now() - lastCheck < 60000) return;
+        lastCheck = Date.now();
+        registration.update().catch(error => console.debug('Verificação de atualização adiada:', error));
+      };
+      window.addEventListener('focus', checkForUpdate);
+      document.addEventListener('visibilitychange', checkForUpdate);
+    }).catch(error => {
       showInstallMessage(`Não foi possível preparar o modo offline (${error.name || 'Erro'}: ${error.message || 'sem detalhes'}). Verifique a conexão e recarregue o jogo.`);
       console.error('Não foi possível ativar o modo offline:', error);
     });
