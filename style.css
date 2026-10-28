@@ -603,6 +603,22 @@ gap: 12px;
 pointer-events: auto;
 }
 
+.d-pad {
+gap: 8px;
+touch-action: none;
+-webkit-touch-callout: none;
+}
+
+.d-pad .t-btn {
+width: clamp(66px, 19vw, 88px);
+height: clamp(72px, 20vw, 88px);
+border-radius: 18px;
+}
+
+.d-pad .t-btn.pressed, .d-pad .t-btn:active {
+transform: none;
+}
+
 .t-btn {
 width: 66px;
 height: 66px;
@@ -617,6 +633,7 @@ align-items: center;
 justify-content: center;
 box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0,0,0,0.6);
 touch-action: none;
+-webkit-touch-callout: none;
 -webkit-tap-highlight-color: transparent;
 user-select: none;
 transition: transform 0.08s, background 0.08s;

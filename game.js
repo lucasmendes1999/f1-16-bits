@@ -804,35 +804,64 @@ class TopDownF1Game {
   }
 
   setupTouchControls() {
-    const bindTouch = (id, keyName) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-
-      const press = (e) => {
-        if (e.cancelable) e.preventDefault();
-        this.keys[keyName] = true;
-        el.classList.add('pressed');
-      };
-
-      const release = (e) => {
-        if (e.cancelable) e.preventDefault();
-        this.keys[keyName] = false;
-        el.classList.remove('pressed');
-      };
-
-      el.addEventListener('touchstart', press, { passive: false });
-      el.addEventListener('touchend', release, { passive: false });
-      el.addEventListener('touchcancel', release, { passive: false });
-      el.addEventListener('mousedown', press);
-      el.addEventListener('mouseup', release);
-      el.addEventListener('mouseleave', release);
+    const pad = document.querySelector('.d-pad');
+    const buttons = {
+      left: document.getElementById('tLeft'),
+      right: document.getElementById('tRight'),
+      brake: document.getElementById('tBrake')
     };
-
-    bindTouch('tLeft', 'left');
-    bindTouch('tRight', 'right');
-    bindTouch('tBrake', 'brake');
-
-    window.addEventListener('gesturestart', (e) => e.preventDefault());
+    const pointers = new Map();
+    const sync = () => {
+      // The most recently pressed direction wins when using two fingers.
+      const directions = [...pointers.values()].filter(key => key === 'left' || key === 'right');
+      const direction = directions[directions.length - 1];
+      for (const [key, button] of Object.entries(buttons)) {
+        const pressed = key === 'brake' ? [...pointers.values()].includes(key) : direction === key;
+        this.keys[key] = pressed;
+        button.classList.toggle('pressed', pressed);
+      }
+    };
+    const directionAt = (event) => {
+      const rect = pad.getBoundingClientRect();
+      if (event.clientX < rect.left - 20 || event.clientX > rect.right + 20 ||
+          event.clientY < rect.top - 20 || event.clientY > rect.bottom + 20) return null;
+      return event.clientX < rect.left + rect.width / 2 ? 'left' : 'right';
+    };
+    const bindPointer = (element, getKey) => {
+      element.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        event.preventDefault();
+        element.setPointerCapture(event.pointerId);
+        pointers.set(event.pointerId, getKey(event));
+        sync();
+      });
+      element.addEventListener('pointermove', (event) => {
+        if (!pointers.has(event.pointerId)) return;
+        const key = getKey(event);
+        if (pointers.get(event.pointerId) !== key) {
+          pointers.delete(event.pointerId);
+          pointers.set(event.pointerId, key);
+          sync();
+        }
+      });
+      const release = (event) => {
+        if (pointers.delete(event.pointerId)) sync();
+      };
+      element.addEventListener('pointerup', release);
+      element.addEventListener('pointercancel', release);
+      element.addEventListener('lostpointercapture', release);
+      element.addEventListener('contextmenu', event => event.preventDefault());
+    };
+    bindPointer(pad, directionAt);
+    bindPointer(buttons.brake, () => 'brake');
+    this.resetControls = () => {
+      pointers.clear();
+      sync();
+    };
+    window.addEventListener('blur', this.resetControls);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.resetControls();
+    });
   }
 
   setupTrackCards() {
@@ -961,6 +990,7 @@ class TopDownF1Game {
   }
 
   goToHomeMenu() {
+    this.resetControls();
     this.raceStarted = false;
     this.countdownActive = false;
     this.isPaused = false;
@@ -993,6 +1023,7 @@ class TopDownF1Game {
     const shouldOpen = (forceState !== null) ? forceState : (modal.style.display !== 'flex');
 
     if (shouldOpen) {
+      this.resetControls();
       modal.style.display = 'flex';
       if (!this.isPaused && (this.raceStarted || this.countdownActive)) {
         this.togglePause();
@@ -1010,6 +1041,7 @@ class TopDownF1Game {
 
   togglePause() {
     if (!this.raceStarted && !this.countdownActive) return;
+    this.resetControls();
     this.isPaused = !this.isPaused;
     const pauseBtn = document.getElementById('modalPauseBtn');
     if (pauseBtn) {
@@ -1023,6 +1055,7 @@ class TopDownF1Game {
   }
 
   startGame() {
+    this.resetControls();
     const activeCard = document.querySelector('.track-card.selected');
     if (activeCard && activeCard.getAttribute('data-track') === 'random') {
       const tracks = ['interlagos', 'monza', 'silverstone', 'spa', 'suzuka', 'monaco'];
