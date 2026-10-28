@@ -706,6 +706,7 @@ class TopDownF1Game {
     this.setupTouchControls();
     this.setupDifficultyButtons();
     this.setupTrackCards();
+    this.setupCarCustomization();
     this.initGrid();
     this.render();
   }
@@ -866,6 +867,64 @@ class TopDownF1Game {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.resetControls();
     });
+  }
+
+  setupCarCustomization() {
+    const presets = {
+      classic: { name: 'VERMELHO CLÁSSICO', body: '#d40000', wing: '#111111', accent: '#ffffff' },
+      ocean: { name: 'AZUL VELOCIDADE', body: '#0077ee', wing: '#ffffff', accent: '#ffd000' },
+      gold: { name: 'AMARELO ELÉTRICO', body: '#ffe600', wing: '#111111', accent: '#00ffff' },
+      mint: { name: 'VERDE TURBO', body: '#00c78c', wing: '#102b35', accent: '#ffffff' },
+      purple: { name: 'ROXO NEON', body: '#a855f7', wing: '#171125', accent: '#00ffcc' }
+    };
+    const inputs = {
+      body: document.getElementById('carBodyColor'),
+      wing: document.getElementById('carWingColor'),
+      accent: document.getElementById('carAccentColor')
+    };
+    const buttons = document.querySelectorAll('[data-paint]');
+    const validColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+    this.carPaint = { ...presets.classic };
+    try {
+      const saved = JSON.parse(localStorage.getItem('f1-car-paint'));
+      if (saved && ['body', 'wing', 'accent'].every(key => validColor(saved[key]))) {
+        this.carPaint = { body: saved.body, wing: saved.wing, accent: saved.accent };
+      }
+    } catch { /* The garage also works when browser storage is unavailable. */ }
+    const update = () => {
+      const selected = Object.keys(presets).find(key =>
+        ['body', 'wing', 'accent'].every(color => presets[key][color] === this.carPaint[color]));
+      document.getElementById('carPaintName').textContent = selected ? presets[selected].name : 'PINTURA PERSONALIZADA';
+      buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.paint === selected)));
+      Object.entries(inputs).forEach(([key, input]) => { input.value = this.carPaint[key]; });
+      const canvas = document.getElementById('carPreview');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(240, 78);
+      ctx.scale(3, 3);
+      this.renderF1CarSprite(ctx, 0, 0, 0, this.player.livery, '', true);
+      ctx.restore();
+      // Keep the large menu illustration in sync with the selected paint.
+      document.querySelectorAll('#carRed stop').forEach(stop => stop.setAttribute('stop-color', this.carPaint.body));
+      document.querySelectorAll('.home-car [fill]').forEach(node => {
+        if (!node.dataset.originalFill) node.dataset.originalFill = node.getAttribute('fill');
+        const fill = node.dataset.originalFill;
+        if (['#ed2441', '#b20c2f', '#ff4850'].includes(fill)) node.setAttribute('fill', this.carPaint.body);
+        if (['#ecebdc', '#161c28'].includes(fill)) node.setAttribute('fill', this.carPaint.wing);
+        if (['#f5e9cb', '#ffe14b'].includes(fill)) node.setAttribute('fill', this.carPaint.accent);
+      });
+      try { localStorage.setItem('f1-car-paint', JSON.stringify(this.carPaint)); } catch { /* Optional persistence. */ }
+    };
+    buttons.forEach(button => button.addEventListener('click', () => {
+      this.carPaint = { ...presets[button.dataset.paint] };
+      update();
+    }));
+    Object.entries(inputs).forEach(([key, input]) => input.addEventListener('input', () => {
+      this.carPaint[key] = input.value;
+      update();
+    }));
+    update();
   }
 
   setupTrackCards() {
@@ -1778,6 +1837,12 @@ class TopDownF1Game {
     else if (livery === 'lotus') { mainCol = '#0b4a26'; wingCol = '#c5a059'; accentCol = '#ffd000'; }
     else if (livery === 'sauber') { mainCol = '#003882'; wingCol = '#ffffff'; accentCol = '#00d0ff'; }
 
+    if (isPlayer && this.carPaint) {
+      mainCol = this.carPaint.body;
+      wingCol = this.carPaint.wing;
+      accentCol = this.carPaint.accent;
+    }
+
     const wheelW = 16;
     const wheelH = 8;
     ctx.fillStyle = '#0f0f12';
@@ -1853,6 +1918,8 @@ class TopDownF1Game {
     }
 
     ctx.restore();
+
+    if (!pilotName) return;
 
     ctx.save();
     ctx.translate(x, y - 30);

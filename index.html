@@ -173,6 +173,19 @@
                 <button type="button" class="diff-btn" data-diff="hard">DIFÍCIL<span>No limite</span></button>
               </div>
             </fieldset>
+            <fieldset class="car-customization">
+              <legend>03 — SUA GARAGEM</legend>
+              <div class="garage-preview"><canvas id="carPreview" width="480" height="170" aria-label="Prévia da pintura do seu carro"></canvas><span id="carPaintName" role="status">VERMELHO CLÁSSICO</span></div>
+              <div class="car-paint-presets" role="group" aria-label="Pinturas prontas">
+                <button type="button" data-paint="classic" aria-label="Vermelho clássico" aria-pressed="true" style="--paint: #d40000"></button>
+                <button type="button" data-paint="ocean" aria-label="Azul velocidade" aria-pressed="false" style="--paint: #0077ee"></button>
+                <button type="button" data-paint="gold" aria-label="Amarelo elétrico" aria-pressed="false" style="--paint: #ffe600"></button>
+                <button type="button" data-paint="mint" aria-label="Verde turbo" aria-pressed="false" style="--paint: #00c78c"></button>
+                <button type="button" data-paint="purple" aria-label="Roxo neon" aria-pressed="false" style="--paint: #a855f7"></button>
+              </div>
+              <div class="car-color-controls"><label>CARRO<input id="carBodyColor" type="color" value="#d40000"></label><label>ASAS<input id="carWingColor" type="color" value="#111111"></label><label>DETALHES<input id="carAccentColor" type="color" value="#ffffff"></label></div>
+              <p>Sua pintura, seu estilo. A velocidade é a mesma.</p>
+            </fieldset>
             <button class="start-btn" id="startBtn">VAMOS PARA A PISTA <span aria-hidden="true">↗</span></button>
             <p class="home-next-step">A seguir: circuito, voltas e classificação.</p>
             <div id="installPanel" class="install-panel" hidden>
