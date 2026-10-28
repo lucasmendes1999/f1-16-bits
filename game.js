@@ -229,6 +229,85 @@ class TopDownTrack {
     this.distances = [];
     this.name = 'INTERLAGOS GP';
     this.build();
+    this.buildGrandstands();
+  }
+
+  buildGrandstands() {
+    this.grandstands = [];
+    const offset = this.width / 2 + 180;
+    // Sparse sections of seating, with a different distribution on each circuit.
+    const seed = [...this.type].reduce((sum, letter) => sum + letter.charCodeAt(0), 0);
+    const clearOfRoad = (x, y) => this.points.every((point, index) => {
+      const next = this.points[(index + 1) % this.points.length];
+      const dx = next.x - point.x, dy = next.y - point.y;
+      const t = Math.max(0, Math.min(1, ((x - point.x) * dx + (y - point.y) * dy) / (dx * dx + dy * dy || 1)));
+      return Math.hypot(x - point.x - dx * t, y - point.y - dy * t) > this.width / 2 + 80;
+    });
+    for (let section = 0; section < 7; section++) {
+      const point = this.getPointAtDistance(this.totalLength * ((section / 7 + (seed % 9) / 100) % 1));
+      for (const side of [-1, 1]) {
+        const x = point.x + point.nx * offset * side;
+        const y = point.y + point.ny * offset * side;
+        const angle = point.angle + (side === -1 ? Math.PI : 0);
+        const cos = Math.cos(angle), sin = Math.sin(angle);
+        let safe = true;
+        // Check the whole footprint, including neighboring stretches of track.
+        for (let sx = -200; sx <= 200 && safe; sx += 40) {
+          for (let sy = -70; sy <= 70; sy += 35) {
+            const wx = x + sx * cos - sy * sin, wy = y + sx * sin + sy * cos;
+            if (!clearOfRoad(wx, wy) || (wx > -2050 && wx < 1150 && wy > -1040 && wy < -910)) {
+              safe = false;
+              break;
+            }
+          }
+        }
+        if (!safe || this.grandstands.some(stand => Math.hypot(stand.x - x, stand.y - y) < 460)) continue;
+        this.grandstands.push({ x, y, angle, seed: seed + section * 17 });
+        break;
+      }
+    }
+  }
+
+  renderGrandstands(ctx, camera) {
+    const colors = ['#ee3454', '#ffda55', '#e4edf4', '#18bdcc', '#6485f6', '#f39253'];
+    for (const stand of this.grandstands) {
+      if (Math.abs(stand.x - camera.x) > camera.width / (2 * camera.zoom) + 240 ||
+          Math.abs(stand.y - camera.y) > camera.height / (2 * camera.zoom) + 240) continue;
+      ctx.save();
+      ctx.translate(stand.x, stand.y);
+      ctx.rotate(stand.angle);
+      ctx.fillStyle = '#00000055';
+      ctx.fillRect(-188, -48, 388, 116);
+      ctx.fillStyle = '#1b2531';
+      ctx.fillRect(-196, -64, 392, 128);
+      for (let row = 0; row < 5; row++) {
+        const y = -48 + row * 21;
+        ctx.fillStyle = row % 2 ? '#59687a' : '#465569';
+        ctx.fillRect(-184, y, 368, 17);
+        for (let seat = 0; seat < 25; seat++) {
+          if (seat === 8 || seat === 17) continue; // Access stairs.
+          const code = stand.seed + row * 31 + seat * 13;
+          const x = -177 + seat * 14;
+          ctx.fillStyle = colors[code % colors.length];
+          ctx.fillRect(x, y + 6, 8, 7);
+          ctx.fillStyle = code % 3 === 0 ? '#ad795b' : '#e2b58e';
+          ctx.fillRect(x + 2, y + 2, 5, 5);
+        }
+      }
+      // Front rail faces the circuit; rear canopy and supports frame the crowd.
+      ctx.fillStyle = '#a1b3c0';
+      ctx.fillRect(-196, -66, 392, 5);
+      ctx.fillStyle = '#d7e1e8';
+      for (let x = -190; x <= 190; x += 38) ctx.fillRect(x, -64, 3, 13);
+      ctx.fillStyle = '#b51f3c';
+      ctx.fillRect(-202, 56, 404, 14);
+      ctx.fillStyle = '#f13856';
+      ctx.fillRect(-202, 52, 404, 5);
+      ctx.fillStyle = '#e7edf1';
+      ctx.fillRect(-196, -60, 4, 116);
+      ctx.fillRect(192, -60, 4, 116);
+      ctx.restore();
+    }
   }
 
   build() {
@@ -469,6 +548,8 @@ class TopDownTrack {
         ctx.fillRect(gx, gy, gridSize, gridSize);
       }
     }
+
+    this.renderGrandstands(ctx, camera);
 
     // Brita
     ctx.strokeStyle = '#c99a4e';
