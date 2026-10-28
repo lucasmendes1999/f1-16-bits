@@ -1068,6 +1068,9 @@ class TopDownF1Game {
   }
 
   startGame() {
+    const selectedLaps = Number(document.getElementById('raceLaps').value);
+    this.totalLaps = Number.isFinite(selectedLaps)
+      ? Math.max(1, Math.min(10, Math.floor(selectedLaps))) : 3;
     this.sessionToken++;
     cancelAnimationFrame(this.animationFrame);
     this.session = 'qualifying';

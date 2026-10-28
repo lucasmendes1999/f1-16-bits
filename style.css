@@ -622,6 +622,43 @@ color: #d1c5e8;
 margin-bottom: 12px;
 }
 
+.race-laps-setting {
+display: flex;
+flex-wrap: wrap;
+align-items: center;
+justify-content: center;
+gap: 10px;
+width: 100%;
+margin-bottom: 16px;
+}
+
+.race-laps-setting label {
+font-size: 8px;
+line-height: 1.8;
+color: #ffe600;
+}
+
+.race-laps-setting select {
+min-height: 44px;
+padding: 8px 12px;
+background: #180930;
+border: 2px solid #00f0ff;
+border-radius: 6px;
+color: #fff;
+font: 16px sans-serif;
+}
+
+.race-laps-setting select:focus-visible {
+outline: 2px solid #ffe600;
+outline-offset: 3px;
+}
+
+.race-laps-setting p {
+width: 100%;
+font: 12px/1.5 sans-serif;
+color: #d1c5e8;
+}
+
 .qualify-table-wrap {
 width: 100%;
 max-height: 42dvh;
