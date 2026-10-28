@@ -1052,3 +1052,39 @@ padding-right: max(12px, env(safe-area-inset-right));
 .car-color-controls input { width: 44px; height: 36px; padding: 3px; cursor: pointer; background: #080d15; border: 1px solid #47515f; border-radius: 4px; }
 .car-customization > p { color: #8795a5; font: 11px/1.5 sans-serif; margin-top: 10px; }
 .car-customization button:focus-visible, .car-customization input:focus-visible { outline: 3px solid #ffe149; outline-offset: 3px; }
+
+/* Grand Prix podium */
+#finishScreen { background: radial-gradient(ellipse at 50% 30%, #34412844, transparent 65%), #080c13; overflow-y: auto; justify-content: flex-start; padding: 30px 18px; gap: 12px; }
+#finishScreen > :first-child { margin-top: auto; }
+#finishScreen > :last-child { margin-bottom: auto; }
+#finishScreen .retro-title { font-size: clamp(16px, 2.3vw, 28px); line-height: 1.7; }
+#finishScreen .retro-sub { margin-bottom: 0; font-size: 10px; line-height: 1.8; }
+.race-podium { width: min(680px, 100%); padding: 18px 18px 0; border: 1px solid #39434e; border-radius: 12px; background: linear-gradient(145deg, #19232be8, #0d141de8); }
+.podium-eyebrow { color: #ffe149; font: 10px/1.5 monospace; letter-spacing: 3px; }
+.race-podium h2 { color: #edf2f5; font: 600 24px/1.3 sans-serif; margin: 8px 0 22px; }
+.podium-places { display: flex; align-items: flex-end; list-style: none; gap: 8px; }
+.podium-place { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; --medal: #bdc9d8; }
+.podium-place-1 { order: 2; --medal: #ffe149; }
+.podium-place-2 { order: 1; }
+.podium-place-3 { order: 3; --medal: #dfaa7f; }
+.podium-badge { font: 34px/1.3 sans-serif; margin-bottom: 8px; }
+.podium-name { width: 100%; color: #e8eef3; font: bold 13px/1.6 monospace; overflow-wrap: anywhere; }
+.podium-driver-tag { color: #8c9eb1; font: 9px/1.5 monospace; letter-spacing: 2px; margin-top: 5px; }
+.podium-player .podium-driver-tag { color: #00e2c4; }
+.podium-player .podium-name { color: #00e2c4; }
+.podium-car { display: block; width: 100%; max-width: 200px; height: 80px; object-fit: contain; }
+.podium-step { width: 100%; height: 88px; padding: 12px 4px; background: linear-gradient(180deg, #293744, #141e29); border-top: 4px solid var(--medal); border-radius: 4px 4px 0 0; color: var(--medal); font: italic 700 42px/1.4 sans-serif; }
+.podium-place-1 .podium-step { height: 125px; background: linear-gradient(180deg, #4c4524, #26271d); }
+.podium-place-3 .podium-step { height: 62px; }
+#finishScreen > .hud-box { width: min(680px, 100%); margin: 0 !important; padding: 15px; background: #101821; border: 1px solid #39434e; box-shadow: none; }
+#finishScreen .track-actions { max-width: 680px; }
+@media (max-width: 480px) {
+  .race-podium { padding: 16px 8px 0; }
+  .race-podium h2 { font-size: 20px; }
+  .podium-places { gap: 5px; }
+  .podium-name { font-size: 10px; }
+  .podium-car { height: 62px; }
+  .podium-badge { font-size: 27px; }
+  .podium-step { font-size: 32px; }
+  #finishScreen .track-actions button { width: 100%; }
+}

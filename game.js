@@ -727,6 +727,9 @@ class TopDownF1Game {
     ];
 
     const diffMod = this.getDifficultyMod();
+    // Give medium players room to recover after braking for manual cornering.
+    this.player.maxSpeed = this.difficulty === 'medium' ? 310 : 300;
+    this.player.accel = this.difficulty === 'medium' ? 125 : 105;
     const finishX = 0;
     const pitY = -800;
 
@@ -804,7 +807,7 @@ class TopDownF1Game {
         return { speed: 1.14, accel: 1.24, qualifyingPace: 1.00 };
       case 'medium':
       default:
-        return { speed: 1.08, accel: 1.14, qualifyingPace: 1.00 };
+        return { speed: 0.94, accel: 0.92, qualifyingPace: 0.94 };
     }
   }
 
@@ -1741,6 +1744,50 @@ class TopDownF1Game {
     this.raceStarted = false;
     this.audio.playLap();
 
+    const standings = this.racers.map(racer => ({
+      name: racer.name,
+      livery: racer.livery,
+      progress: (racer.lap - 1) * this.track.totalLength + racer.trackDist,
+      isPlayer: false
+    }));
+    standings.push({ name: this.playerName, livery: this.player.livery,
+      progress: this.player.raceProgress, isPlayer: true });
+    // Use the same race progress as the position display when the player finishes.
+    standings.sort((a, b) => b.progress - a.progress || Number(b.isPlayer) - Number(a.isPlayer));
+    this.player.rank = standings.findIndex(driver => driver.isPlayer) + 1;
+    const podium = document.getElementById('podiumPlaces');
+    podium.replaceChildren();
+    standings.slice(0, 3).forEach((driver, index) => {
+      const place = document.createElement('li');
+      place.className = `podium-place podium-place-${index + 1}${driver.isPlayer ? ' podium-player' : ''}`;
+      place.setAttribute('aria-label', `${index + 1}º lugar: ${driver.name}${driver.isPlayer ? ', você' : ''}`);
+      const badge = document.createElement('span');
+      badge.className = 'podium-badge';
+      badge.textContent = index === 0 ? '🏆' : index === 1 ? '🥈' : '🥉';
+      badge.setAttribute('aria-hidden', 'true');
+      const name = document.createElement('strong');
+      name.className = 'podium-name';
+      name.textContent = driver.name;
+      const tag = document.createElement('span');
+      tag.className = 'podium-driver-tag';
+      tag.textContent = driver.isPlayer ? 'VOCÊ' : 'PILOTO';
+      const canvas = document.createElement('canvas');
+      canvas.width = 240;
+      canvas.height = 120;
+      canvas.className = 'podium-car';
+      canvas.setAttribute('aria-hidden', 'true');
+      const ctx = canvas.getContext('2d');
+      ctx.translate(120, 60);
+      ctx.scale(2.3, 2.3);
+      this.renderF1CarSprite(ctx, 0, 0, 0, driver.livery, '', driver.isPlayer);
+      const step = document.createElement('div');
+      step.className = 'podium-step';
+      step.textContent = String(index + 1).padStart(2, '0');
+      step.setAttribute('aria-hidden', 'true');
+      place.append(badge, name, tag, canvas, step);
+      podium.append(place);
+    });
+
     const finishScreen = document.getElementById('finishScreen');
     const finishTitle = document.getElementById('finishTitle');
     const finishPos = document.getElementById('finishPos');
@@ -1843,70 +1890,93 @@ class TopDownF1Game {
       accentCol = this.carPaint.accent;
     }
 
-    const wheelW = 16;
-    const wheelH = 8;
-    ctx.fillStyle = '#0f0f12';
-
-    ctx.fillRect(14, -18, wheelW, wheelH);
-    ctx.fillRect(14, 10, wheelW, wheelH);
-    ctx.fillRect(-22, -21, wheelW + 2, wheelH + 1);
-    ctx.fillRect(-22, 12, wheelW + 2, wheelH + 1);
-
-    ctx.fillStyle = '#ffd000';
-    ctx.fillRect(18, -16, 8, 4);
-    ctx.fillRect(18, 12, 8, 4);
-    ctx.fillRect(-18, -19, 9, 5);
-    ctx.fillRect(-18, 14, 9, 5);
-
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 2;
+    // Reuse the menu illustration's geometry at race scale.
+    if (!this.carSpritePaths) {
+      this.carSpritePaths = [
+        'M108 66L170 91M108 174L170 149M335 73L301 98M335 167L301 142',
+        'M62 61H83V179H62Z',
+        'M88 94L170 87L211 66L274 77L311 103L416 111L430 120L416 129L311 137L274 163L211 174L170 153L88 146Z',
+        'M180 90L217 77L246 85L230 106H177ZM180 150L217 163L246 155L230 134H177Z',
+        'M238 103L268 96L294 109V131L268 144L238 137Z',
+        'M258 105L273 110V129L258 135Z',
+        'M291 112H409V128H291',
+        'M390 65H410V175H390Z',
+        'M399 65H416V175H399',
+        'M96 100H155V140H96Z',
+        'M180 115H214V125H180ZM316 115H350V125H316Z',
+        'M80 47H120M80 54H120M80 183H120M80 190H120M320 52H354M320 184H354'
+      ].map(path => new Path2D(path));
+      this.carTirePath = new Path2D();
+      [[68, 38, 65, 53], [68, 149, 65, 53], [310, 43, 54, 48], [310, 149, 54, 48]]
+        .forEach(([tx, ty, tw, th]) => {
+          // Quadratic corners keep this compatible with older canvas engines.
+          const r = 7;
+          const path = this.carTirePath;
+          path.moveTo(tx + r, ty);
+          path.lineTo(tx + tw - r, ty);
+          path.quadraticCurveTo(tx + tw, ty, tx + tw, ty + r);
+          path.lineTo(tx + tw, ty + th - r);
+          path.quadraticCurveTo(tx + tw, ty + th, tx + tw - r, ty + th);
+          path.lineTo(tx + r, ty + th);
+          path.quadraticCurveTo(tx, ty + th, tx, ty + th - r);
+          path.lineTo(tx, ty + r);
+          path.quadraticCurveTo(tx, ty, tx + r, ty);
+          path.closePath();
+        });
+    }
+    ctx.save();
+    ctx.scale(0.2, 0.2);
+    ctx.translate(-246, -120);
+    ctx.strokeStyle = '#070a12';
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    const paint = (index, color) => {
+      ctx.fillStyle = color;
+      ctx.fill(this.carSpritePaths[index]);
+      ctx.stroke(this.carSpritePaths[index]);
+    };
+    ctx.strokeStyle = '#777d8b';
+    ctx.lineWidth = 7;
+    ctx.stroke(this.carSpritePaths[0]);
+    ctx.strokeStyle = '#070a12';
+    ctx.lineWidth = 4;
+    const tires = ctx.createLinearGradient(0, 38, 0, 202);
+    tires.addColorStop(0, '#3e414e');
+    tires.addColorStop(0.4, '#11151e');
+    tires.addColorStop(1, '#03050a');
+    ctx.fillStyle = tires;
+    ctx.fill(this.carTirePath);
+    ctx.stroke(this.carTirePath);
+    paint(1, mainCol);
+    const body = ctx.createLinearGradient(0, 66, 0, 174);
+    body.addColorStop(0, mainCol);
+    body.addColorStop(0.5, mainCol);
+    body.addColorStop(1, '#111827');
+    paint(2, body);
+    paint(3, mainCol);
+    ctx.fillStyle = '#00000030';
+    ctx.fill(this.carSpritePaths[3]);
+    paint(4, '#101b2c');
+    ctx.fillStyle = isPlayer ? '#ffe14b' : accentCol;
     ctx.beginPath();
-    ctx.moveTo(18, 0); ctx.lineTo(18, -14);
-    ctx.moveTo(18, 0); ctx.lineTo(18, 14);
-    ctx.moveTo(-14, 0); ctx.lineTo(-14, -16);
-    ctx.moveTo(-14, 0); ctx.lineTo(-14, 16);
+    ctx.ellipse(263, 120, 17, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.stroke();
-
-    ctx.fillStyle = wingCol;
-    ctx.fillRect(24, -17, 6, 34);
+    paint(5, '#00bfc3');
+    paint(6, mainCol);
+    paint(7, accentCol);
+    paint(8, wingCol);
+    paint(9, accentCol);
     ctx.fillStyle = accentCol;
-    ctx.fillRect(26, -13, 3, 26);
-
-    ctx.fillStyle = wingCol;
-    ctx.fillRect(-26, -19, 6, 38);
-    ctx.fillStyle = mainCol;
-    ctx.fillRect(-27, -20, 7, 3);
-    ctx.fillRect(-27, 17, 7, 3);
-
-    ctx.fillStyle = mainCol;
-    ctx.beginPath();
-    ctx.moveTo(28, 0);
-    ctx.lineTo(12, -7);
-    ctx.lineTo(-4, -13);
-    ctx.lineTo(-20, -11);
-    ctx.lineTo(-20, 11);
-    ctx.lineTo(-4, 13);
-    ctx.lineTo(12, 7);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#111';
-    ctx.fillRect(2, -12, 6, 3);
-    ctx.fillRect(2, 9, 6, 3);
-
-    ctx.fillStyle = '#08080c';
-    ctx.beginPath();
-    ctx.ellipse(-2, 0, 7, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = isPlayer ? '#ffd000' : accentCol;
-    ctx.beginPath();
-    ctx.arc(-2, 0, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#00f0ff';
-    ctx.fillRect(0, -2, 2, 4);
-
+    ctx.fill(this.carSpritePaths[10]);
+    ctx.strokeStyle = '#64717f';
+    ctx.lineWidth = 2;
+    ctx.stroke(this.carSpritePaths[11]);
+    ctx.fillStyle = '#14151d';
+    ctx.font = 'bold 26px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('1', 121, 129);
+    ctx.restore();
     const isBraking = isPlayer ? this.keys.brake : false;
     ctx.fillStyle = isBraking ? '#ff0033' : '#440008';
     ctx.fillRect(-22, -2, 3, 4);
