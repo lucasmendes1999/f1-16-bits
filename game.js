@@ -679,6 +679,10 @@ class TopDownF1Game {
     this.raceFinished = false;
     this.isPaused = false;
     this.countdownActive = false;
+    this.session = 'menu';
+    this.gridPosition = 12;
+    this.sessionElapsed = 0;
+    this.sessionToken = 0;
 
     this.particles = [];
     this.skidmarks = [];
@@ -741,7 +745,7 @@ class TopDownF1Game {
     const totalLen = this.track.totalLength;
 
     this.racers = f1Drivers.map((driver, idx) => {
-      const gridPos = idx + 1;
+      const gridPos = idx + 1 >= this.gridPosition ? idx + 2 : idx + 1;
       const boxX = finishX - gridPos * 115;
       const laneOffset = (gridPos % 2 === 1) ? -45 : 45;
       const boxY = pitY + laneOffset;
@@ -766,13 +770,13 @@ class TopDownF1Game {
       };
     });
 
-    const playerGridPos = 12;
-    const playerLaneOffset = 45;
+    const playerGridPos = this.gridPosition;
+    const playerLaneOffset = playerGridPos % 2 === 1 ? -45 : 45;
     const playerBoxX = finishX - playerGridPos * 115;
     const playerBoxY = pitY + playerLaneOffset;
     const playerStartDist = (finishDist - playerGridPos * 115 + totalLen) % totalLen;
 
-    this.player.gridSlot = 12;
+    this.player.gridSlot = playerGridPos;
     this.player.trackDist = playerStartDist;
     this.player.raceProgress = playerStartDist;
     this.player.distance = playerStartDist;
@@ -785,7 +789,7 @@ class TopDownF1Game {
     this.player.lap = 1;
     this.player.hasPassedStartLine = false;
     this.player.halfwayChecked = false;
-    this.player.rank = 12;
+    this.player.rank = playerGridPos;
 
     this.camera.x = this.player.x + 80;
     this.camera.y = this.player.y;
@@ -947,6 +951,9 @@ class TopDownF1Game {
     });
 
     document.getElementById('restartBtn').addEventListener('click', () => this.restartGame());
+    document.getElementById('finishHomeBtn').addEventListener('click', () => this.goToHomeMenu());
+    document.getElementById('qualifyRaceBtn').addEventListener('click', () => this.startQualifiedRace());
+    document.getElementById('qualifyHomeBtn').addEventListener('click', () => this.goToHomeMenu());
 
     const menuTrigger = document.getElementById('menuTriggerBtn');
     const pauseBtn = document.getElementById('modalPauseBtn');
@@ -990,8 +997,14 @@ class TopDownF1Game {
   }
 
   goToHomeMenu() {
+    this.sessionToken++;
+    cancelAnimationFrame(this.animationFrame);
+    this.session = 'menu';
+    this.gridPosition = 12;
+    document.getElementById('qualifyScreen').style.display = 'none';
     this.resetControls();
     this.raceStarted = false;
+    this.raceFinished = false;
     this.countdownActive = false;
     this.isPaused = false;
     this.audio.pauseEngine();
@@ -1055,6 +1068,15 @@ class TopDownF1Game {
   }
 
   startGame() {
+    this.sessionToken++;
+    cancelAnimationFrame(this.animationFrame);
+    this.session = 'qualifying';
+    this.gridPosition = 12;
+    this.sessionElapsed = 0;
+    this.qualifyingStarted = false;
+    this.qualifyingSector = 0;
+    this.bestLapTime = Infinity;
+    document.getElementById('qualifyScreen').style.display = 'none';
     this.resetControls();
     const activeCard = document.querySelector('.track-card.selected');
     if (activeCard && activeCard.getAttribute('data-track') === 'random') {
@@ -1078,13 +1100,84 @@ class TopDownF1Game {
     this.skidmarks = [];
 
     this.initGrid();
-    this.startF1Countdown();
+    // Simulated qualifying pace allows for braking and cornering during a full lap.
+    this.qualifyingRivals = this.racers.map(racer => ({
+      name: racer.name,
+      time: this.track.totalLength / (racer.maxSpeed * 2.2 * 0.8) + 0.8
+    }));
+    this.racers = [];
+    this.player.x = -650;
+    this.player.y = -800;
+    this.player.prevX = this.player.x;
+    this.player.prevY = this.player.y;
+    this.player.speed = 250;
+    this.player.trackDist = this.getNearestTrackPoint(this.player.x, this.player.y).dist;
+    this.player.raceProgress = this.player.trackDist;
+    this.player.distance = this.player.trackDist;
+    this.camera.x = this.player.x + 80;
+    this.camera.y = this.player.y;
+    this.raceStarted = true;
+    this.countdownActive = false;
+    this.audio.startMusic();
+    document.getElementById('startLightsOverlay').style.display = 'none';
+    this.updateHUD(performance.now());
 
     this.lastTime = performance.now();
-    requestAnimationFrame((t) => this.loop(t));
+    this.animationFrame = requestAnimationFrame((t) => this.loop(t));
+  }
+
+  finishQualifying() {
+    const time = this.sessionElapsed - this.qualifyingStartTime;
+    const results = [...this.qualifyingRivals, { name: this.playerName, time, isPlayer: true }]
+      .sort((a, b) => a.time - b.time || (a.isPlayer ? 1 : -1));
+    this.gridPosition = results.findIndex(result => result.isPlayer) + 1;
+    this.session = 'qualifying-result';
+    this.raceStarted = false;
+    this.resetControls();
+    this.audio.pauseEngine();
+    this.audio.playLap();
+    document.getElementById('qualifyResult').textContent =
+      `SUA VOLTA: ${this.formatTime(time)} • LARGADA EM ${this.gridPosition}º`;
+    const body = document.getElementById('qualifyResults');
+    body.replaceChildren();
+    results.forEach((result, index) => {
+      const row = document.createElement('tr');
+      if (result.isPlayer) row.className = 'qualify-player';
+      [String(index + 1), result.name, this.formatTime(result.time)].forEach(value => {
+        const cell = document.createElement('td');
+        cell.textContent = value;
+        row.appendChild(cell);
+      });
+      body.appendChild(row);
+    });
+    document.getElementById('qualifyScreen').style.display = 'flex';
+  }
+
+  startQualifiedRace() {
+    if (this.session !== 'qualifying-result') return;
+    this.sessionToken++;
+    cancelAnimationFrame(this.animationFrame);
+    this.session = 'race';
+    this.sessionElapsed = 0;
+    this.resetControls();
+    this.lap = 1;
+    this.bestLapTime = Infinity;
+    this.raceStarted = false;
+    this.raceFinished = false;
+    this.isPaused = false;
+    this.particles = [];
+    this.skidmarks = [];
+    document.getElementById('qualifyScreen').style.display = 'none';
+    this.initGrid();
+    this.updateHUD(performance.now());
+    document.getElementById('hudTime').textContent = '00:00.00';
+    this.startF1Countdown();
+    this.lastTime = performance.now();
+    this.animationFrame = requestAnimationFrame(t => this.loop(t));
   }
 
   startF1Countdown() {
+    const token = this.sessionToken;
     this.countdownActive = true;
     const overlay = document.getElementById('startLightsOverlay');
     const text = document.getElementById('gantryText');
@@ -1096,7 +1189,7 @@ class TopDownF1Game {
     }
 
     const lightStep = (step) => {
-      if (!this.countdownActive) return;
+      if (!this.countdownActive || token !== this.sessionToken) return;
       if (step <= 5) {
         document.getElementById(`lamp${step}`).classList.add('lit');
         this.audio.playBeep(false);
@@ -1104,7 +1197,7 @@ class TopDownF1Game {
       } else {
         const waitTime = 800 + Math.random() * 700;
         setTimeout(() => {
-          if (!this.countdownActive) return;
+          if (!this.countdownActive || token !== this.sessionToken) return;
           for (let i = 1; i <= 5; i++) {
             document.getElementById(`lamp${i}`).classList.remove('lit');
           }
@@ -1124,6 +1217,7 @@ class TopDownF1Game {
           this.totalStartTime = performance.now();
 
           setTimeout(() => {
+            if (token !== this.sessionToken) return;
             overlay.style.display = 'none';
             text.style.color = '#00ffff';
           }, 1200);
@@ -1149,8 +1243,8 @@ class TopDownF1Game {
     }
     this.render();
 
-    if (this.raceStarted || this.raceFinished || this.countdownActive || this.isPaused) {
-      requestAnimationFrame((t) => this.loop(t));
+    if (this.raceStarted || this.countdownActive || this.isPaused) {
+      this.animationFrame = requestAnimationFrame((t) => this.loop(t));
     }
   }
 
@@ -1159,6 +1253,8 @@ class TopDownF1Game {
       this.audio.updateEngine(0.1);
       return;
     }
+    if (!this.raceStarted) return;
+    this.sessionElapsed += dt;
 
     const p = this.player;
 
@@ -1216,13 +1312,29 @@ class TopDownF1Game {
 
     if (!p.hasPassedStartLine && crossedFinishLine) {
       p.hasPassedStartLine = true;
+      if (this.session === 'qualifying') {
+        this.qualifyingStarted = true;
+        this.qualifyingStartTime = this.sessionElapsed;
+        this.qualifyingStartProgress = p.raceProgress;
+      }
+    }
+
+    if (this.session === 'qualifying' && this.qualifyingStarted && isOnRoad) {
+      const progress = p.raceProgress - this.qualifyingStartProgress;
+      if (progress >= (this.qualifyingSector + 1) * totalLen / 4 && this.qualifyingSector < 3) {
+        this.qualifyingSector++;
+      }
+      if (crossedFinishLine && this.qualifyingSector === 3 && progress >= totalLen * 0.95) {
+        this.finishQualifying();
+        return;
+      }
     }
 
     if (p.hasPassedStartLine && p.distance > this.track.totalLength * 0.45 && p.distance < this.track.totalLength * 0.85) {
       p.halfwayChecked = true;
     }
 
-    if (p.halfwayChecked && crossedFinishLine) {
+    if (this.session === 'race' && p.halfwayChecked && crossedFinishLine) {
       p.halfwayChecked = false;
       const lapTime = (now - this.lapStartTime) / 1000;
       if (lapTime < this.bestLapTime) this.bestLapTime = lapTime;
@@ -1236,7 +1348,7 @@ class TopDownF1Game {
       }
     }
 
-    this.updateRacers(dt);
+    if (this.session === 'race') this.updateRacers(dt);
     if (finished) this.finishRace(now);
 
     const lookaheadDist = p.speed * 0.28;
@@ -1382,11 +1494,21 @@ class TopDownF1Game {
 
     const lapEl = document.getElementById('hudLap');
     if (lapEl) lapEl.innerText = `${this.track.name} • ${Math.min(this.lap, this.totalLaps)} / ${this.totalLaps}`;
+    if (this.session === 'qualifying') {
+      if (posEl) posEl.textContent = 'CLASSIFICAÇÃO';
+      if (lapEl) lapEl.textContent = this.qualifyingStarted
+        ? `${this.track.name} • VOLTA ÚNICA • SETOR ${Math.min(3, this.qualifyingSector + 1)}/3`
+        : 'CRUZE A LINHA PARA INICIAR A VOLTA';
+    }
 
     const timeEl = document.getElementById('hudTime');
     if (timeEl && this.raceStarted && !this.raceFinished) {
       const totalSec = Math.max(0, (now - this.totalStartTime) / 1000);
       timeEl.innerText = this.formatTime(totalSec);
+      if (this.session === 'qualifying') {
+        timeEl.textContent = this.formatTime(this.qualifyingStarted
+          ? this.sessionElapsed - this.qualifyingStartTime : 0);
+      }
     }
 
     const rpmRatio = Math.min(1.0, this.player.speed / this.player.maxSpeed);

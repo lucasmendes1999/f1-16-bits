@@ -616,6 +616,34 @@ line-height: 1.8;
 text-align: center;
 }
 
+.qualify-note {
+font: 13px/1.5 sans-serif;
+color: #d1c5e8;
+margin-bottom: 12px;
+}
+
+.qualify-table-wrap {
+width: 100%;
+max-height: 42dvh;
+overflow-y: auto;
+margin-bottom: 18px;
+}
+
+.qualify-table {
+width: 100%;
+border-collapse: collapse;
+font: 12px/1.5 monospace;
+text-align: left;
+}
+
+.qualify-table th, .qualify-table td {
+padding: 8px 6px;
+border-bottom: 1px solid #583c8a;
+}
+
+.qualify-table th { color: #ffe600; }
+.qualify-player { color: #00ffcc; background: #093822; }
+
 /* Controles de Toque Mobile */
 #touch-controls {
 position: absolute;

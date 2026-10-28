@@ -4,6 +4,10 @@ const installHelp = document.getElementById('installHelp');
 const standalone = window.matchMedia('(display-mode: standalone)');
 let installPrompt = null;
 let installed = standalone.matches || navigator.standalone === true;
+const showInstallMessage = message => {
+  installHelp.textContent = message;
+  installHelp.hidden = false;
+};
 
 const updateInstallPanel = () => {
   installPanel.hidden = installed;
@@ -20,13 +24,19 @@ window.addEventListener('beforeinstallprompt', event => {
 window.addEventListener('appinstalled', () => {
   installed = true;
   installPrompt = null;
+  showInstallMessage('Jogo instalado! Abra pelo ícone na tela inicial.');
   updateInstallPanel();
 });
 
-standalone.addEventListener('change', event => {
+const onDisplayModeChange = event => {
   installed = event.matches || navigator.standalone === true;
   updateInstallPanel();
-});
+};
+if (standalone.addEventListener) {
+  standalone.addEventListener('change', onDisplayModeChange);
+} else if (standalone.addListener) {
+  standalone.addListener(onDisplayModeChange);
+}
 
 installButton.addEventListener('click', async () => {
   if (installPrompt) {
@@ -34,11 +44,13 @@ installButton.addEventListener('click', async () => {
     installPrompt = null;
     installButton.disabled = true;
     try {
-      await prompt.prompt();
-      await prompt.userChoice;
+      const result = await prompt.prompt();
+      const choice = result || await prompt.userChoice;
+      showInstallMessage(choice && choice.outcome === 'accepted'
+        ? 'Pedido enviado ao navegador. Aguarde a instalação e confira o ícone na tela inicial. Se o navegador mostrar um erro, informe a mensagem exibida.'
+        : 'Instalação cancelada. Para tentar de novo, use o menu do navegador → Instalar aplicativo.');
     } catch (error) {
-      installHelp.textContent = 'Abra o menu do navegador e procure Instalar aplicativo ou Adicionar à tela inicial.';
-      installHelp.hidden = false;
+      showInstallMessage(`Não foi possível abrir a instalação (${error.name || 'Erro'}: ${error.message || 'sem detalhes'}). Tente pelo menu do navegador → Instalar aplicativo e informe a mensagem se falhar.`);
       console.error('Não foi possível abrir a instalação:', error);
     } finally {
       installButton.disabled = false;
@@ -63,7 +75,8 @@ updateInstallPanel();
 
 if ('serviceWorker' in navigator && window.isSecureContext) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(error => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(error => {
+      showInstallMessage(`Não foi possível preparar o modo offline (${error.name || 'Erro'}: ${error.message || 'sem detalhes'}). Verifique a conexão e recarregue o jogo.`);
       console.error('Não foi possível ativar o modo offline:', error);
     });
   });

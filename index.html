@@ -39,7 +39,7 @@
           <button id="modalPauseBtn" class="modal-btn primary">⏸️ PAUSAR CORRIDA</button>
           <button id="modalAudioBtn" class="modal-btn">🔊 SOM: ATIVADO</button>
           <button id="modalCrtBtn" class="modal-btn">📺 FILTRO CRT: LIGADO</button>
-          <button id="modalRestartBtn" class="modal-btn" style="border-color: #ff0044;">🔄 REINICIAR LARGADA</button>
+          <button id="modalRestartBtn" class="modal-btn" style="border-color: #ff0044;">🔄 REINICIAR CLASSIFICAÇÃO</button>
           <button id="modalHomeBtn" class="modal-btn" style="border-color: #ffd000; color: #ffd000;">🏠 VOLTAR AO MENU INICIAL</button>
           <button id="modalCloseBtn" class="modal-btn" style="background: #251347; color: #ffe600;">❯ VOLTAR À PISTA</button>
         </div>
@@ -145,6 +145,7 @@
       <div class="track-modal-box">
         <div class="retro-title" style="font-size: 22px; margin-bottom: 4px;">F1 16-BITS</div>
         <div class="retro-sub" style="margin-bottom: 8px;">ESCOLHA O CIRCUITO DO GRAND PRIX</div>
+        <p class="qualify-note">Faça uma volta de classificação com a pista livre para definir sua posição de largada.</p>
 
         <div class="track-cards-grid">
           <div class="track-card selected" data-track="interlagos">
@@ -179,7 +180,7 @@
 
         <div class="track-actions">
           <button class="diff-btn" id="backToTitleBtn" style="padding: 12px 18px;">❮ VOLTAR</button>
-          <button class="start-btn" id="confirmTrackBtn">CONFIRMAR CIRCUITO E LARGAR ❯</button>
+          <button class="start-btn" id="confirmTrackBtn">INICIAR CLASSIFICAÇÃO ❯</button>
         </div>
       </div>
     </div>
@@ -195,6 +196,24 @@
       </div>
     </div>
 
+    <div id="qualifyScreen" class="screen-overlay" style="display: none;">
+      <div class="track-modal-box">
+        <div class="modal-title">RESULTADO DA CLASSIFICAÇÃO</div>
+        <p id="qualifyResult" class="retro-sub"></p>
+        <p class="qualify-note">Tempos dos adversários simulados conforme a dificuldade.</p>
+        <div class="qualify-table-wrap">
+          <table class="qualify-table">
+            <thead><tr><th scope="col">POS.</th><th scope="col">PILOTO</th><th scope="col">TEMPO</th></tr></thead>
+            <tbody id="qualifyResults"></tbody>
+          </table>
+        </div>
+        <div class="track-actions">
+          <button id="qualifyRaceBtn" class="start-btn" type="button">LARGAR NO GRID</button>
+          <button id="qualifyHomeBtn" class="diff-btn" type="button">VOLTAR AO MENU PRINCIPAL</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Tela de Conclusão / Pódio Oficial -->
     <div id="finishScreen" class="screen-overlay" style="display: none;">
       <div class="retro-title" id="finishTitle">BANDEIRA QUADRICULADA!</div>
@@ -207,7 +226,10 @@
         <div class="hud-title">MELHOR VOLTA RÁPIDA</div>
         <div class="hud-val" id="bestLapTime" style="font-size: 14px; color: #ffe600;">00:00.00</div>
       </div>
-      <button class="start-btn" id="restartBtn">DISPUTAR NOVO GP</button>
+      <div class="track-actions">
+        <button class="start-btn" id="restartBtn">DISPUTAR NOVO GP</button>
+        <button class="diff-btn" id="finishHomeBtn" type="button">VOLTAR AO MENU PRINCIPAL</button>
+      </div>
     </div>
   </div>
 
