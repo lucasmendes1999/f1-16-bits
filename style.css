@@ -583,6 +583,31 @@ border: 1px dashed rgba(255,255,255,0.25);
 max-width: 620px;
 }
 
+.install-panel {
+margin-top: 12px;
+max-width: 360px;
+text-align: center;
+}
+
+.install-btn {
+min-height: 44px;
+padding: 10px 14px;
+border: 2px solid #00f0ff;
+border-radius: 6px;
+background: #180930;
+color: #00f0ff;
+font-family: inherit;
+font-size: 8px;
+line-height: 1.8;
+cursor: pointer;
+}
+
+.install-help {
+margin-top: 8px;
+font: 14px/1.5 sans-serif;
+color: #d1c5e8;
+}
+
 .developer-credit {
 margin-top: 16px;
 color: #d1c5e8;
