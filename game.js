@@ -800,10 +800,10 @@ class TopDownF1Game {
       case 'easy':
         return { speed: 0.86, accel: 0.85, qualifyingPace: 0.8 };
       case 'hard':
-        return { speed: 1.10, accel: 1.12, qualifyingPace: 1.14 };
+        return { speed: 1.20, accel: 1.35, qualifyingPace: 1.12 };
       case 'medium':
       default:
-        return { speed: 1.04, accel: 1.07, qualifyingPace: 1.12 };
+        return { speed: 1.12, accel: 1.22, qualifyingPace: 1.10 };
     }
   }
 
@@ -1394,34 +1394,48 @@ class TopDownF1Game {
     let carsAhead = 0;
     const totalLen = this.track.totalLength;
     const playerLapProgress = this.player.raceProgress;
+    // Plan from the same snapshot so a car's decision does not depend on loop order.
+    const playerPoint = this.track.getPointAtDistance(this.player.trackDist);
+    const playerLane = (this.player.x - playerPoint.x) * playerPoint.nx +
+      (this.player.y - playerPoint.y) * playerPoint.ny;
+    const traffic = this.racers.map(car => ({
+      car, trackDist: car.trackDist, laneOffset: car.laneOffset, speed: car.speed
+    }));
+    traffic.push({ car: this.player, trackDist: this.player.trackDist,
+      laneOffset: playerLane, speed: this.player.speed * 2.1 / 2.2 });
 
     for (let i = 0; i < this.racers.length; i++) {
       const r = this.racers[i];
-
-      if (r.speed < r.maxSpeed) {
-        r.speed = Math.min(r.maxSpeed, r.speed + r.accel * dt);
+      const nearby = traffic.filter(other => other.car !== r).map(other => ({
+        ...other, gap: (other.trackDist - r.trackDist + totalLen) % totalLen
+      }));
+      const blocker = nearby.filter(other => other.gap > 0 && other.gap < 210 &&
+        Math.abs(r.targetLaneOffset - other.laneOffset) < 40)
+        .sort((a, b) => a.gap - b.gap)[0];
+      if (blocker) {
+        const passingLane = blocker.laneOffset >= 0 ? -55 : 55;
+        const laneClear = nearby.every(other => Math.abs(other.laneOffset - passingLane) >= 40 ||
+          (other.gap > 160 && other.gap < totalLen - 90));
+        if (laneClear) r.targetLaneOffset = passingLane;
       }
 
-      const moveDist = r.speed * 2.2 * dt;
-      r.trackDist = (r.trackDist + moveDist);
+      let targetSpeed = r.maxSpeed;
+      for (const other of nearby) {
+        if (other.gap > 0 && other.gap < 90 && Math.abs(r.laneOffset - other.laneOffset) < 32) {
+          // Follow without applying a fresh percentage penalty on every frame.
+          targetSpeed = Math.min(targetSpeed, other.speed * Math.max(0.45, other.gap / 90));
+        }
+      }
+      r.speed = r.speed < targetSpeed
+        ? Math.min(targetSpeed, r.speed + r.accel * dt)
+        : Math.max(targetSpeed, r.speed - 260 * dt);
 
+      r.laneOffset += (r.targetLaneOffset - r.laneOffset) * 2.5 * dt;
+      r.trackDist += r.speed * 2.2 * dt;
       if (r.trackDist >= totalLen) {
         r.trackDist -= totalLen;
         r.lap++;
       }
-
-      for (let j = 0; j < this.racers.length; j++) {
-        if (i === j) continue;
-        const other = this.racers[j];
-        const distAhead = (other.trackDist - r.trackDist + totalLen) % totalLen;
-
-        if (distAhead > 0 && distAhead < 120 && Math.abs(r.laneOffset - other.laneOffset) < 35) {
-          r.targetLaneOffset = (other.laneOffset > 0) ? -45 : 45;
-          r.speed = Math.min(r.speed, other.speed * 0.96);
-        }
-      }
-
-      r.laneOffset += (r.targetLaneOffset - r.laneOffset) * 2.5 * dt;
 
       const trackPos = this.track.getTrackPosition(r.trackDist, r.laneOffset);
       r.x = trackPos.x;
