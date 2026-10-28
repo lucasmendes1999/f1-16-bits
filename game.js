@@ -224,6 +224,7 @@ class TopDownTrack {
   constructor(type = 'interlagos') {
     this.type = type;
     this.width = 260; // Pista larga e confortável para tangentes perfeitas
+    this.runoffWidth = 55; // Gravel extends to the visible grass boundary.
     this.points = [];
     this.totalLength = 0;
     this.distances = [];
@@ -449,6 +450,7 @@ class TopDownTrack {
     }
 
     // Interpolação Catmull-Rom de alta densidade (48 passos por segmento)
+
     this.points = [];
     const numRaw = rawPoints.length;
     const stepsPerSeg = 48;
@@ -553,7 +555,7 @@ class TopDownTrack {
 
     // Brita
     ctx.strokeStyle = '#c99a4e';
-    ctx.lineWidth = this.width + 110;
+    ctx.lineWidth = this.width + this.runoffWidth * 2;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -832,6 +834,13 @@ class TopDownF1Game {
 
     const totalLen = this.track.totalLength;
 
+    const numberPool = Array.from({ length: 90 }, (_, i) => i + 1)
+      .filter(number => number !== (this.player.number || 1));
+    // Fisher-Yates shuffle: unique race numbers, excluding the player's choice.
+    for (let i = numberPool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [numberPool[i], numberPool[j]] = [numberPool[j], numberPool[i]];
+    }
     this.racers = f1Drivers.map((driver, idx) => {
       const gridPos = idx + 1 >= this.gridPosition ? idx + 2 : idx + 1;
       const boxX = finishX - gridPos * 115;
@@ -841,6 +850,7 @@ class TopDownF1Game {
 
       return {
         name: driver.name,
+        number: numberPool[idx],
         team: driver.team,
         livery: driver.livery,
         gridSlot: gridPos,
@@ -888,7 +898,7 @@ class TopDownF1Game {
       case 'easy':
         return { speed: 0.86, accel: 0.85, qualifyingPace: 0.8 };
       case 'hard':
-        return { speed: 1.14, accel: 1.24, qualifyingPace: 1.00 };
+        return { speed: 1.01, accel: 1.06, qualifyingPace: 0.94 };
       case 'medium':
       default:
         return { speed: 0.94, accel: 0.92, qualifyingPace: 0.94 };
@@ -1107,6 +1117,26 @@ class TopDownF1Game {
     const titleScreen = document.getElementById('titleScreen');
     const trackScreen = document.getElementById('trackSelectScreen');
     const nameInput = document.getElementById('playerNameInput');
+    const numberInput = document.getElementById('playerNumberInput');
+    const normalizeNumber = value => Math.max(1, Math.min(90, Math.floor(Number(value) || 1)));
+    try { numberInput.value = normalizeNumber(localStorage.getItem('f1-car-number')); } catch { /* Storage is optional. */ }
+    const updateNumber = () => {
+      this.player.number = normalizeNumber(numberInput.value);
+      const menuNumber = document.querySelector('.home-car text');
+      if (menuNumber) menuNumber.textContent = this.player.number;
+      const canvas = document.getElementById('carPreview');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(240, 78);
+      ctx.scale(3, 3);
+      this.renderF1CarSprite(ctx, 0, 0, 0, this.player.livery, '', true);
+      ctx.restore();
+      try { localStorage.setItem('f1-car-number', String(this.player.number)); } catch { /* Storage is optional. */ }
+    };
+    numberInput.addEventListener('input', updateNumber);
+    numberInput.addEventListener('change', () => { updateNumber(); numberInput.value = this.player.number; });
+    updateNumber();
 
     nameInput.addEventListener('input', (e) => {
       const val = e.target.value.trim().toUpperCase();
@@ -1493,6 +1523,7 @@ class TopDownF1Game {
     const distFromCenter = Math.hypot(p.x - nearest.pt.x, p.y - nearest.pt.y);
     const halfRoad = this.track.width / 2;
     const isOnRoad = distFromCenter <= (halfRoad + 22);
+    const isOnGrass = distFromCenter > halfRoad + this.track.runoffWidth;
 
     if (!isOnRoad) {
       p.speed = Math.max(45, p.speed - 160 * dt);
@@ -1501,9 +1532,9 @@ class TopDownF1Game {
       }
     }
 
-    // One sanction per excursion; returning inside for half a second rearms it.
+    // Penalize only beyond the gravel boundary, where the grass begins.
     // Serve the slowdown on the road so staying in the runoff cannot erase it.
-    if (!isOnRoad) {
+    if (isOnGrass) {
       this.trackLimitRecovery = 0;
       if (!this.trackLimitExcursion) {
         this.trackLimitExcursion = true;
@@ -1657,7 +1688,15 @@ class TopDownF1Game {
         if (laneClear) r.targetLaneOffset = passingLane;
       }
 
-      let targetSpeed = r.maxSpeed;
+      // Read the approaching bend instead of taking every corner at full speed.
+      const currentPoint = this.track.getTrackPosition(r.trackDist, 0);
+      const nearPoint = this.track.getTrackPosition((r.trackDist + 100) % totalLen, 0);
+      const farPoint = this.track.getTrackPosition((r.trackDist + 240) % totalLen, 0);
+      const angleDelta = angle => Math.abs(Math.atan2(
+        Math.sin(angle - currentPoint.angle), Math.cos(angle - currentPoint.angle)));
+      const bend = Math.max(angleDelta(nearPoint.angle), angleDelta(farPoint.angle));
+      const cornerPace = Math.max(0.72, 1 - bend * 0.32);
+      let targetSpeed = r.maxSpeed * cornerPace;
       for (const other of nearby) {
         if (other.gap > 0 && other.gap < 90 && Math.abs(r.laneOffset - other.laneOffset) < 32) {
           // Follow without applying a fresh percentage penalty on every frame.
@@ -1687,7 +1726,9 @@ class TopDownF1Game {
       r.angle = trackPos.angle;
 
       const distToPlayer = Math.hypot(r.x - this.player.x, r.y - this.player.y);
-      if (distToPlayer < 40) {
+      r.contactCooldown = Math.max(0, (r.contactCooldown || 0) - dt);
+      if (distToPlayer < 40 && r.contactCooldown === 0) {
+        r.contactCooldown = 0.4;
         this.audio.playBump();
         const pushAngle = Math.atan2(this.player.y - r.y, this.player.x - r.x);
         this.player.x += Math.cos(pushAngle) * 5;
@@ -1866,10 +1907,11 @@ class TopDownF1Game {
     const standings = this.racers.map(racer => ({
       name: racer.name,
       livery: racer.livery,
+      number: racer.number,
       progress: (racer.lap - 1) * this.track.totalLength + racer.trackDist,
       isPlayer: false
     }));
-    standings.push({ name: this.playerName, livery: this.player.livery,
+    standings.push({ name: this.playerName, livery: this.player.livery, number: this.player.number,
       progress: this.player.raceProgress, isPlayer: true });
     // Use the same race progress as the position display when the player finishes.
     standings.sort((a, b) => b.progress - a.progress || Number(b.isPlayer) - Number(a.isPlayer));
@@ -1882,7 +1924,7 @@ class TopDownF1Game {
       place.setAttribute('aria-label', `${index + 1}º lugar: ${driver.name}${driver.isPlayer ? ', você' : ''}`);
       const badge = document.createElement('span');
       badge.className = 'podium-badge';
-      badge.textContent = index === 0 ? '🏆' : index === 1 ? '🥈' : '🥉';
+      badge.textContent = ['CAMPEÃO', '2º LUGAR', '3º LUGAR'][index];
       badge.setAttribute('aria-hidden', 'true');
       const name = document.createElement('strong');
       name.className = 'podium-name';
@@ -1898,12 +1940,15 @@ class TopDownF1Game {
       const ctx = canvas.getContext('2d');
       ctx.translate(120, 60);
       ctx.scale(2.3, 2.3);
-      this.renderF1CarSprite(ctx, 0, 0, 0, driver.livery, '', driver.isPlayer);
+      this.renderF1CarSprite(ctx, 0, 0, 0, driver.livery, '', driver.isPlayer, driver.number);
       const step = document.createElement('div');
       step.className = 'podium-step';
       step.textContent = String(index + 1).padStart(2, '0');
       step.setAttribute('aria-hidden', 'true');
-      place.append(badge, name, tag, canvas, step);
+      const raceNumber = document.createElement('span');
+      raceNumber.className = 'podium-race-number';
+      raceNumber.textContent = `CARRO #${driver.number || 1}`;
+      place.append(badge, name, tag, canvas, raceNumber, step);
       podium.append(place);
     });
 
@@ -1914,7 +1959,25 @@ class TopDownF1Game {
     const bestLapEl = document.getElementById('bestLapTime');
     const pilotEl = document.getElementById('finishPilotName');
 
-    if (finishScreen) finishScreen.style.display = 'flex';
+    if (finishScreen) {
+      finishScreen.style.display = 'flex';
+      const stage = finishScreen.querySelector('.race-podium');
+      stage.querySelector('.podium-confetti')?.remove();
+      const confetti = document.createElement('div');
+      confetti.className = 'podium-confetti';
+      confetti.setAttribute('aria-hidden', 'true');
+      const colors = ['#ffe15a', '#f44161', '#45ddc0', '#dbe7f3'];
+      for (let i = 0; i < 42; i++) {
+        const piece = document.createElement('i');
+        piece.style.setProperty('--x', `${Math.random() * 100}%`);
+        piece.style.setProperty('--drift', `${(Math.random() - 0.5) * 160}px`);
+        piece.style.setProperty('--delay', `${0.8 + Math.random() * 2}s`);
+        piece.style.setProperty('--duration', `${2.5 + Math.random() * 2}s`);
+        piece.style.setProperty('--color', colors[i % colors.length]);
+        confetti.append(piece);
+      }
+      stage.append(confetti);
+    }
     if (pilotEl) pilotEl.innerText = this.playerName;
     if (finishTitle) {
       finishTitle.innerText = this.player.rank === 1 ? 'VITÓRIA! P1 NO GRAND PRIX!' : 'BANDEIRA QUADRICULADA!';
@@ -1956,7 +2019,7 @@ class TopDownF1Game {
     }
 
     for (let r of this.racers) {
-      this.renderF1CarSprite(ctx, r.x, r.y, r.angle, r.livery, r.name, false);
+      this.renderF1CarSprite(ctx, r.x, r.y, r.angle, r.livery, r.name, false, r.number);
     }
 
     this.renderF1CarSprite(
@@ -1982,7 +2045,7 @@ class TopDownF1Game {
     ctx.restore();
   }
 
-  renderF1CarSprite(ctx, x, y, angle, livery, pilotName, isPlayer) {
+  renderF1CarSprite(ctx, x, y, angle, livery, pilotName, isPlayer, number = this.player.number || 1) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
@@ -2092,9 +2155,9 @@ class TopDownF1Game {
     ctx.lineWidth = 2;
     ctx.stroke(this.carSpritePaths[11]);
     ctx.fillStyle = '#14151d';
-    ctx.font = 'bold 26px monospace';
+    ctx.font = 'bold 22px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('1', 121, 129);
+    ctx.fillText(String(number), 119, 128, 38);
     ctx.restore();
     const isBraking = isPlayer ? this.keys.brake : false;
     ctx.fillStyle = isBraking ? '#ff0033' : '#440008';

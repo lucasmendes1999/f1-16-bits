@@ -1233,3 +1233,63 @@ padding-right: max(12px, env(safe-area-inset-right));
 .track-limit-notice { position: absolute; top: 125px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); padding: 12px 16px; border: 1px solid #ffc54d; border-left: 4px solid #ffc54d; border-radius: 5px; background: #251b0bf2; color: #ffe19a; text-align: center; font: bold 12px/1.7 monospace; box-shadow: 0 5px 20px #0005; }
 .track-limit-notice[hidden] { display: none; }
 @media (max-height: 500px) { .track-limit-notice { top: 95px; padding: 6px 10px; font-size: 10px; } }
+.car-number-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #a9b6c4; font: 10px/1.5 monospace; margin-bottom: 10px; }
+#playerNumberInput { width: 76px; min-height: 40px; padding: 8px; background: #090f18; border: 1px solid #47515f; border-radius: 4px; color: #ffe149; font: bold 18px monospace; text-align: center; }
+
+/* Podium ceremony: individual driver cards on a shared stage. */
+#finishScreen .race-podium { width: min(1000px,100%); padding: 28px 28px 22px; border: 1px solid #34424b; border-top: 3px solid #e3bd53; background: radial-gradient(ellipse at 50% 20%,#e6bc4020,transparent 55%),#101820; }
+#finishScreen .podium-eyebrow { color: #e3bd53; }
+#finishScreen .race-podium h2 { font-size: 38px; margin-bottom: 28px; }
+#finishScreen .podium-places { gap: 16px; padding-top: 30px; align-items: stretch; }
+#finishScreen .podium-place { position: relative; isolation: isolate; overflow: hidden; padding: 22px 12px 18px; border: 1px solid #41505f; border-top: 3px solid var(--medal); border-radius: 8px; background: linear-gradient(160deg,#273542,#131d27); }
+#finishScreen .podium-place-1 { margin-top: -30px; padding-top: 26px; border-color: #b99a45; background: radial-gradient(ellipse at 50% 10%,#f4ca492e,transparent 80%),linear-gradient(145deg,#302e22,#191e20); box-shadow: 0 0 36px #e4be4410; }
+#finishScreen .podium-step, #finishScreen .podium-place-1 .podium-step, #finishScreen .podium-place-3 .podium-step { position: absolute; top: 6px; right: 12px; z-index: -1; width: auto; height: auto; padding: 0; background: none; border: 0; box-shadow: none; font: italic 700 110px/1 'Teko',sans-serif; color: var(--medal); opacity: .1; }
+#finishScreen .podium-step::after { display: none; }
+#finishScreen .podium-badge { display: block; align-self: flex-start; margin: 0 0 20px 4px; color: var(--medal); font: bold 10px/1.5 monospace; letter-spacing: 2px; filter: none; }
+#finishScreen .podium-place-1 .podium-badge { padding: 6px 10px; margin-bottom: 18px; border: 1px solid #c5a44866; border-radius: 3px; background: #e8c34712; }
+#finishScreen .podium-name { font: 600 clamp(18px,2.3vw,28px)/1.2 'Teko',sans-serif; letter-spacing: .7px; }
+#finishScreen .podium-place-1 .podium-name { color: #ffe17b; font-size: clamp(23px,2.8vw,34px); }
+#finishScreen .podium-driver-tag { margin-top: 8px; font-size: 9px; }
+#finishScreen .podium-car { width: 100%; max-width: 290px; height: 132px; margin: 10px 0 4px; }
+#finishScreen .podium-place-1 .podium-car { max-width: 320px; height: 148px; }
+#finishScreen .podium-race-number { color: #98aabc; font: 10px/1.5 monospace; letter-spacing: 2px; }
+#finishScreen .podium-place-1 .podium-race-number { color: #e6ca7a; }
+#finishScreen .finish-stats, #finishScreen .track-actions { width: min(1000px,100%); max-width: 1000px; }
+@media(max-width:560px) {
+  #finishScreen .race-podium { padding: 20px 8px 12px; }
+  #finishScreen .race-podium h2 { font-size: 30px; margin-bottom: 18px; }
+  #finishScreen .podium-places { gap: 6px; padding-top: 20px; }
+  #finishScreen .podium-place { padding: 14px 4px 12px; }
+  #finishScreen .podium-place-1 { margin-top: -20px; padding-top: 18px; }
+  #finishScreen .podium-badge { font-size: 8px; letter-spacing: .3px; margin: 0 0 16px; align-self: center; }
+  #finishScreen .podium-place-1 .podium-badge { padding: 4px; margin-bottom: 12px; }
+  #finishScreen .podium-name { font-size: 17px; }
+  #finishScreen .podium-place-1 .podium-name { font-size: 21px; }
+  #finishScreen .podium-car { height: 76px; }
+  #finishScreen .podium-place-1 .podium-car { height: 90px; }
+  #finishScreen .podium-driver-tag { font-size: 7px; letter-spacing: 1px; }
+  #finishScreen .podium-step, #finishScreen .podium-place-1 .podium-step, #finishScreen .podium-place-3 .podium-step { font-size: 75px; right: 3px; }
+  #finishScreen .podium-race-number { font-size: 8px; letter-spacing: .5px; }
+}
+/* The ceremony runs again whenever the finish screen is opened. */
+#finishScreen .race-podium { position: relative; isolation: isolate; }
+#finishScreen .retro-title { animation: ceremony-title .65s ease-out both; }
+#finishScreen .retro-sub { animation: ceremony-reveal .5s .2s ease-out both; }
+#finishScreen .podium-place { animation: ceremony-reveal .75s cubic-bezier(.2,.7,.2,1) both; }
+#finishScreen .podium-place-3 { animation-delay: .25s; }
+#finishScreen .podium-place-2 { animation-delay: .65s; }
+#finishScreen .podium-place-1 { animation: ceremony-reveal .85s 1.05s cubic-bezier(.2,.7,.2,1) both, ceremony-gold 2.4s 1.9s ease-in-out 2; }
+#finishScreen .podium-place-1 .podium-badge { animation: ceremony-title .6s 1.65s ease-out both; }
+#finishScreen .finish-stats { animation: ceremony-reveal .65s 1.65s ease-out both; }
+#finishScreen .track-actions { animation: ceremony-reveal .5s 1.85s ease-out backwards; }
+.podium-confetti { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.podium-confetti i { position: absolute; top: -18px; left: var(--x); width: 7px; height: 12px; background: var(--color); opacity: 0; animation: ceremony-confetti var(--duration) var(--delay) linear both; }
+.podium-confetti i:nth-child(3n) { width: 5px; height: 5px; }
+@keyframes ceremony-title { from { opacity: 0; transform: translateY(12px) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes ceremony-reveal { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ceremony-gold { 0%,100% { box-shadow: 0 0 20px #e4be4410; } 50% { box-shadow: 0 0 40px #e4be4440, inset 0 0 22px #e4be4410; } }
+@keyframes ceremony-confetti { 0% { opacity: 0; transform: translate3d(0,0,0) rotate(0); } 8% { opacity: .9; } 85% { opacity: .8; } 100% { opacity: 0; transform: translate3d(var(--drift),560px,0) rotate(540deg); } }
+@media(prefers-reduced-motion: reduce) {
+  #finishScreen .retro-title, #finishScreen .retro-sub, #finishScreen .podium-place, #finishScreen .podium-place-1, #finishScreen .podium-place-1 .podium-badge, #finishScreen .finish-stats, #finishScreen .track-actions { animation: none; }
+  .podium-confetti { display: none; }
+}
