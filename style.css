@@ -1090,20 +1090,22 @@ padding-right: max(12px, env(safe-area-inset-right));
   #finishScreen .track-actions button { width: 100%; }
 }
 
+.home-entry-fields, .home-entry-actions { display: contents; }
+
 /* Celular deitado: prioriza a altura disponivel e preserva as areas de toque. */
 @media (orientation: landscape) and (max-height: 700px) {
   #titleScreen, #trackSelectScreen, #finishScreen, #interactiveModal {
     padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   }
-  #titleScreen { justify-content: flex-start; }
-  .home-shell { width: min(1120px, 100%); margin: 0 auto; }
+  #titleScreen { justify-content: flex-start; overflow: hidden; }
+  .home-shell { width: min(1120px, 100%); height: 100%; min-height: 0; margin: 0 auto; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
   .home-header { padding: 0 0 8px; gap: 12px; }
   .home-brand { font-size: 9px; }
   .home-edition { font-size: 8px; letter-spacing: 0; }
-  .home-main { grid-template-columns: minmax(0, .8fr) minmax(0, 1.6fr); align-items: start; gap: 18px; padding: 12px 0; }
-  .home-showcase { padding-top: 8px; }
+  .home-main { grid-template-columns: minmax(0, .85fr) minmax(0, 1.6fr); align-items: stretch; gap: 14px; padding: 8px 0; min-height: 0; }
+  .home-showcase { padding-top: 4px; min-height: 0; overflow: hidden; }
   .home-eyebrow { font-size: 8px; letter-spacing: .4px; margin-bottom: 8px; }
-  #homeTitle { font-size: clamp(21px, 3.4vw, 36px); letter-spacing: -1.5px; }
+  #homeTitle { font-size: clamp(17px, 2.65vw, 30px); letter-spacing: -1px; white-space: nowrap; }
   #homeTitle .home-title-outline { font-size: .45em; margin-top: 4px; }
   .home-intro { font-size: 12px; line-height: 1.5; margin-top: 10px; }
   .home-car-stage { height: clamp(80px, 24dvh, 145px); margin: 0; }
@@ -1112,9 +1114,11 @@ padding-right: max(12px, env(safe-area-inset-right));
   .home-features { gap: 6px; margin-top: 4px; padding-top: 8px; }
   .home-features > span { font-size: 7px; }
   .home-features b { font-size: 17px; }
-  .home-entry { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; padding: 14px; border-radius: 9px; }
+  .home-entry { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; gap: 8px; padding: 10px; border-radius: 9px; }
+  .home-entry-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; align-content: start; align-items: start; gap: 8px 12px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 2px 4px 6px; }
+  .home-entry-actions { display: block; min-width: 0; padding-top: 6px; border-top: 1px solid #ffffff18; }
   .home-entry-top { grid-column: 1 / -1; font-size: 9px; }
-  .home-entry h2 { grid-column: 1 / -1; margin: 0; font-size: 20px; }
+  .home-entry h2 { grid-column: 1 / -1; margin: 0; font-size: 18px; }
   .home-entry h2 br { display: none; }
   #titleScreen .driver-name-box { grid-column: 1; margin: 0; gap: 5px; }
   #titleScreen .driver-name-box label, .home-difficulty legend, .car-customization legend { font-size: 9px; letter-spacing: 0; }
@@ -1123,21 +1127,23 @@ padding-right: max(12px, env(safe-area-inset-right));
   #titleScreen .diff-group { gap: 4px; margin: 0; }
   #titleScreen .diff-btn { min-height: 44px; padding: 8px 2px; font-size: 7px; }
   #titleScreen .diff-btn > span { display: none; }
-  .car-customization { grid-column: 2; grid-row: 3 / 5; margin: 0; }
+  .car-customization { grid-column: 2; grid-row: 2 / 4; margin: 0; }
   .car-customization legend { margin-bottom: 5px; }
   .garage-preview { padding: 0 4px 4px; }
-  #carPreview { height: 56px; }
+  #carPreview { height: 44px; }
   #carPaintName { font-size: 8px; letter-spacing: 0; }
   .car-paint-presets { gap: 4px; margin: 6px 0; }
   .car-paint-presets button { flex: 1; min-width: 0; max-width: 44px; height: 44px; }
   .car-color-controls { gap: 4px; }
-  .car-color-controls label { font-size: 8px; }
-  .car-color-controls input { width: 100%; height: 44px; }
+  .car-color-controls label { font-size: 8px; gap: 2px; }
+  .car-color-controls input { width: 100%; height: 32px; }
   .car-customization > p { display: none; }
   #titleScreen .start-btn { grid-column: 1 / -1; min-height: 44px; padding: 8px 12px; font-size: 9px; }
-  .home-next-step { grid-column: 1 / -1; margin: 0; font-size: 10px; }
-  #titleScreen .install-panel { grid-column: 1 / -1; margin: 0; padding-top: 6px; }
-  .home-footer { flex-direction: row; padding: 8px 0 0; gap: 12px; }
+  .home-next-step { margin: 5px 0 0; font-size: 9px; }
+  #titleScreen .install-panel { margin: 4px 0 0; padding: 0; border: 0; }
+  #titleScreen .install-btn { min-height: 28px; padding: 2px; font-size: 9px; }
+  #titleScreen .install-help { max-height: 48px; overflow-y: auto; }
+  .home-footer { flex-direction: row; padding: 4px 0 0; gap: 12px; }
   .home-touch-guide, #titleScreen .developer-credit { font-size: 9px; }
 
   .circuit-header { padding-bottom: 8px; }

@@ -160,7 +160,8 @@
 
           <section class="home-entry" aria-labelledby="entryTitle">
             <div class="home-entry-top"><span>INSCRIÇÃO DO PILOTO</span><span aria-hidden="true">01 / 02</span></div>
-            <h2 id="entryTitle">Seu lugar no grid<br>começa aqui.</h2>
+            <div class="home-entry-fields">
+            <h2 id="entryTitle">Seu lugar no grid <br>começa aqui.</h2>
             <div class="driver-name-box">
               <label for="playerNameInput">01 — NOME DO PILOTO</label>
               <input type="text" id="playerNameInput" class="driver-input" maxlength="14" value="A. SENNA" placeholder="SEU NOME" autocomplete="off" spellcheck="false">
@@ -186,11 +187,14 @@
               <div class="car-color-controls"><label>CARRO<input id="carBodyColor" type="color" value="#d40000"></label><label>ASAS<input id="carWingColor" type="color" value="#111111"></label><label>DETALHES<input id="carAccentColor" type="color" value="#ffffff"></label></div>
               <p>Sua pintura, seu estilo. A velocidade é a mesma.</p>
             </fieldset>
+            </div>
+            <div class="home-entry-actions">
             <button class="start-btn" id="startBtn">VAMOS PARA A PISTA <span aria-hidden="true">↗</span></button>
             <p class="home-next-step">A seguir: circuito, voltas e classificação.</p>
             <div id="installPanel" class="install-panel" hidden>
               <button id="installBtn" class="install-btn" type="button" aria-describedby="installHelp">COMO INSTALAR NO CELULAR</button>
               <p id="installHelp" class="install-help" role="status" hidden></p>
+            </div>
             </div>
           </section>
         </div>
