@@ -65,6 +65,7 @@ $manifest.manifest.application.SetAttribute('debuggable', 'http://schemas.androi
 $manifest.Save($manifestPath)
 $resourcesZip = Join-Path $buildRoot 'resources.zip'
 $unsigned = Join-Path $buildRoot 'unsigned.apk'
+$packaged = Join-Path $buildRoot 'packaged.apk'
 $aligned = Join-Path $buildRoot 'aligned.apk'
 $apk = Join-Path $output 'f1-16-bits-debug.apk'
 
@@ -72,7 +73,7 @@ Write-Host '1/5 Preparando recursos e arquivos offline...'
 Invoke-BuildTool (Join-Path $tools.FullName 'aapt2.exe') @('compile', '--dir', $res, '-o', $resourcesZip)
 Invoke-BuildTool (Join-Path $tools.FullName 'aapt2.exe') @('link', '-o', $unsigned, '-I', $androidJar,
     '--manifest', $manifestPath, '--java', $generated, '-A', $assets, '--min-sdk-version', '23',
-    '--target-sdk-version', '36', '--version-code', '1', '--version-name', '0.1.0', $resourcesZip)
+    '--target-sdk-version', '36', '--version-code', '2', '--version-name', '0.1.1', $resourcesZip)
 
 Write-Host '2/5 Compilando o aplicativo Android...'
 $javaSources = @(Get-ChildItem (Join-Path $projectRoot 'app\src\main\java') -Filter '*.java' -Recurse |
@@ -86,23 +87,16 @@ $classFiles = @(Get-ChildItem $classes -Filter '*.class' -Recurse | Select-Objec
 # Run SDK jars directly, avoiding batch wrappers on paths containing spaces.
 Invoke-BuildTool (Join-Path $JavaHome 'bin\java.exe') (@('-cp', (Join-Path $tools.FullName 'lib\d8.jar'),
     'com.android.tools.r8.D8', '--min-api', '23', '--lib', $androidJar, '--output', $dex) + $classFiles)
-Invoke-BuildTool (Join-Path $JavaHome 'bin\jar.exe') @('uf', $unsigned, '-C', $dex, 'classes.dex')
-# Some Windows AAPT2 builds emit backslashes in nested asset entry names.
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-Add-Type -AssemblyName System.IO.Compression
-$archive = [IO.Compression.ZipFile]::Open($unsigned, [IO.Compression.ZipArchiveMode]::Update)
-try {
-    $windowsEntries = @($archive.Entries | Where-Object { $_.FullName.Contains('\') })
-    foreach ($entry in $windowsEntries) {
-        $normalized = $archive.CreateEntry($entry.FullName.Replace('\', '/'))
-        $sourceStream = $entry.Open()
-        $targetStream = $normalized.Open()
-        try { $sourceStream.CopyTo($targetStream) }
-        finally { $sourceStream.Dispose(); $targetStream.Dispose() }
-        $entry.Delete()
-    }
-} finally { $archive.Dispose() }
-Invoke-BuildTool (Join-Path $tools.FullName 'zipalign.exe') @('-f', '-p', '4', $unsigned, $aligned)
+# Rebuild with STORED entries and explicit CRC/sizes. Avoid .NET ZIP updates,
+# which can leave missing data descriptors, and .NET NoCompression (DEFLATE),
+# which Android disallows for resources.arsc when targeting API 30+.
+$packagerClasses = Join-Path $buildRoot 'packager'
+New-Item -ItemType Directory -Path $packagerClasses -Force | Out-Null
+Invoke-BuildTool (Join-Path $JavaHome 'bin\javac.exe') @('--release', '17', '-d', $packagerClasses,
+    (Join-Path $projectRoot 'tools\PackageApk.java'))
+Invoke-BuildTool (Join-Path $JavaHome 'bin\java.exe') @('-cp', $packagerClasses, 'PackageApk',
+    $unsigned, (Join-Path $dex 'classes.dex'), $packaged)
+Invoke-BuildTool (Join-Path $tools.FullName 'zipalign.exe') @('-f', '-p', '4', $packaged, $aligned)
 
 Write-Host '4/5 Assinando APK de desenvolvimento...'
 $keystore = Join-Path $keyDir 'debug.keystore'
@@ -117,4 +111,6 @@ Invoke-BuildTool (Join-Path $JavaHome 'bin\java.exe') @('-jar', $signer, 'sign',
 Write-Host '5/5 Verificando assinatura e alinhamento...'
 Invoke-BuildTool (Join-Path $JavaHome 'bin\java.exe') @('-jar', $signer, 'verify', '--verbose', $apk)
 Invoke-BuildTool (Join-Path $tools.FullName 'zipalign.exe') @('-c', '4', $apk)
+& (Join-Path $projectRoot 'test-apk.ps1') -ApkPath $apk
+Copy-Item -LiteralPath $apk -Destination (Join-Path $output 'f1-16-bits-0.1.1-debug.apk') -Force
 Write-Host "APK pronto: $apk"

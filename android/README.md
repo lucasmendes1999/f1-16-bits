@@ -53,7 +53,9 @@ serve para testar e compartilhar uma versão inicial. A chave fica em
 esta instalação sem perder dados. Para publicar na Play Store, configure uma
 chave de lançamento e gere um Android App Bundle assinado no Android Studio.
 
-Identificador inicial: `com.lmracing.f116bits`. Versão: `0.1.0` (código 1).
+Identificador inicial: `com.lmracing.f116bits`. Versão: `0.1.1` (código 2).
+O script também salva `android/output/f1-16-bits-0.1.1-debug.apk` para identificar a atualização.
+Esta versão corrige o empacotamento ZIP/DEX que impedia o Android de abrir o app.
 O código de versão deve aumentar nas próximas distribuições. Não há anúncios,
 analytics, compras ou permissões adicionais nesta versão.
 
