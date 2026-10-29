@@ -234,7 +234,7 @@ class RetroSoundEngine {
 }
 
 /* ==========================================================================
-   CIRCUITOS TOP-DOWN DE FORMULA 1 (Sentido Horário, Curvas Suaves e Reta Limpa)
+   CIRCUITOS TOP-DOWN DE MONOPOSTOS (Sentido Horário, Curvas Suaves e Reta Limpa)
    ========================================================================== */
 class TopDownTrack {
   constructor(type = 'interlagos') {
@@ -244,7 +244,7 @@ class TopDownTrack {
     this.points = [];
     this.totalLength = 0;
     this.distances = [];
-    this.name = 'INTERLAGOS GP';
+    this.name = 'VALE DO SOL GP';
     this.build();
     this.buildGrandstands();
   }
@@ -332,7 +332,7 @@ class TopDownTrack {
     const pitY = -800;
 
     if (this.type === 'monza') {
-      this.name = 'MONZA GP';
+      this.name = 'RETA RUBI GP';
       rawPoints = [
         { x: -1800, y: pitY },
         { x: -900,  y: pitY },
@@ -355,7 +355,7 @@ class TopDownTrack {
         { x: -2150, y: pitY }
       ];
     } else if (this.type === 'silverstone') {
-      this.name = 'SILVERSTONE GP';
+      this.name = 'CAMPO DOS VENTOS GP';
       rawPoints = [
         { x: -1800, y: pitY },
         { x: -900,  y: pitY },
@@ -376,7 +376,7 @@ class TopDownTrack {
         { x: -2200, y: pitY }
       ];
     } else if (this.type === 'spa') {
-      this.name = 'SPA-FRANCORCHAMPS GP';
+      this.name = 'SERRA NEBULOSA GP';
       rawPoints = [
         { x: -1800, y: pitY },
         { x: -900,  y: pitY },
@@ -397,7 +397,7 @@ class TopDownTrack {
         { x: -2150, y: pitY }
       ];
     } else if (this.type === 'suzuka') {
-      this.name = 'SUZUKA GP';
+      this.name = 'JARDIM DAS CURVAS GP';
       rawPoints = [
         { x: -1800, y: pitY },
         { x: -900,  y: pitY },
@@ -420,7 +420,7 @@ class TopDownTrack {
         { x: -2150, y: pitY }
       ];
     } else if (this.type === 'monaco') {
-      this.name = 'MÔNACO GP';
+      this.name = 'PORTO NEON GP';
       rawPoints = [
         { x: -1800, y: pitY },
         { x: -900,  y: pitY },
@@ -443,7 +443,7 @@ class TopDownTrack {
         { x: -2100, y: pitY }
       ];
     } else {
-      this.name = 'INTERLAGOS GP';
+      this.name = 'VALE DO SOL GP';
       rawPoints = [
         { x: -1800, y: pitY },
         { x: -900,  y: pitY },
@@ -669,7 +669,7 @@ class TopDownTrack {
     ctx.lineWidth = 3;
     ctx.strokeRect(pitStartX, pitWallY, pitEndX - pitStartX, 34);
 
-    const sponsors = ['SHELL', 'PIRELLI', 'AGIP', 'GEAR F1', 'MAGNETI MARELLI', 'TAG HEUER', 'SEGA', 'BOSS'];
+    const sponsors = ['LM RACING', 'TURBO LAB', 'APEX OIL', 'PIXEL GEAR', 'NEON MOTOR', 'VOLTA TECH', 'ARCADE', 'BOX 16'];
     ctx.font = 'bold 9px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -721,7 +721,7 @@ class TopDownTrack {
 }
 
 /* ==========================================================================
-   TOP-DOWN FORMULA 1 GAME ENGINE (F1 16-BITS)
+   TOP-DOWN ARCADE RACING GAME ENGINE (LM RETRO RACING)
    ========================================================================== */
 class TopDownF1Game {
   constructor() {
@@ -734,7 +734,7 @@ class TopDownF1Game {
     this.selectedTrack = 'interlagos';
     this.track = new TopDownTrack(this.selectedTrack);
 
-    this.playerName = 'A. SENNA';
+    this.playerName = 'SEU PILOTO';
     this.difficulty = 'medium';
 
     this.camera = {
@@ -762,8 +762,8 @@ class TopDownF1Game {
       distance: 0,
       hasPassedStartLine: false,
       halfwayChecked: false,
-      livery: 'ferrari',
-      name: 'A. SENNA'
+      livery: 'rubra',
+      name: 'SEU PILOTO'
     };
 
     this.racers = [];
@@ -986,6 +986,19 @@ class TopDownF1Game {
             Number.isInteger(driver.points) && driver.points >= 0 && Array.isArray(driver.finishes) &&
             driver.finishes.length === saved.round && driver.finishes.every(place => Number.isInteger(place) && place >= 1 && place <= 12))) {
         this.championship = saved;
+        // Keep points from older installs while moving opponents to the new roster.
+        const legacyNames = {
+          'M. SCHUMACHER': 'M. COSTA', 'A. PROST': 'A. LIMA', 'N. MANSELL': 'N. DUARTE',
+          'J. ALESI': 'J. RAMOS', 'G. BERGER': 'G. NUNES', 'D. HILL': 'D. FREITAS',
+          'M. HÄKKINEN': 'M. LEAL', 'R. BARRICHELLO': 'R. AZEVEDO', 'E. IRVINE': 'E. ROCHA',
+          'J. HERBERT': 'J. CAMPOS', 'K. WENDLINGER': 'K. MORAES'
+        };
+        saved.drivers.forEach(driver => {
+          if (driver.id !== 'player' && legacyNames[driver.id]) {
+            driver.name = legacyNames[driver.id];
+            driver.id = driver.name;
+          }
+        });
       }
     } catch { /* A season can also be played without browser storage. */ }
     document.getElementById('raceMode').addEventListener('change', event => {
@@ -1066,8 +1079,8 @@ class TopDownF1Game {
     document.getElementById('newChampionshipBtn').hidden = !active || !season;
     document.getElementById('championshipInfo').textContent = active
       ? (season && season.round < 6
-        ? `${season.playerName} · PRÓXIMA ETAPA: ${season.round + 1}/6 · ${this.championshipTracks[season.round].toUpperCase()}`
-        : 'Interlagos → Monza → Silverstone → Spa → Suzuka → Mônaco. Pontos: 25, 18, 15, 12, 10, 8, 6, 4, 2, 1. Desempate por melhores colocações.')
+        ? `${season.playerName} · PRÓXIMA ETAPA: ${season.round + 1}/6 · ${new TopDownTrack(this.championshipTracks[season.round]).name}`
+        : 'Vale do Sol → Reta Rubi → Campo dos Ventos → Serra Nebulosa → Jardim das Curvas → Porto Neon. Pontos: 25, 18, 15, 12, 10, 8, 6, 4, 2, 1. Desempate por melhores colocações.')
       : 'Escolha qualquer circuito para disputar um GP avulso.';
     const table = document.getElementById('menuChampionshipTable');
     table.hidden = !active || !season;
@@ -1076,17 +1089,17 @@ class TopDownF1Game {
 
   initGrid() {
     const f1Drivers = [
-      { name: 'M. SCHUMACHER',  team: 'Benetton',  livery: 'benetton', baseSpeed: 275 },
-      { name: 'A. PROST',       team: 'Williams',  livery: 'williams', baseSpeed: 272 },
-      { name: 'N. MANSELL',     team: 'Williams',  livery: 'williams', baseSpeed: 270 },
-      { name: 'J. ALESI',       team: 'Ferrari',   livery: 'ferrari',  baseSpeed: 268 },
-      { name: 'G. BERGER',      team: 'Ferrari',   livery: 'ferrari',  baseSpeed: 266 },
-      { name: 'D. HILL',        team: 'Williams',  livery: 'williams', baseSpeed: 264 },
-      { name: 'M. HÄKKINEN',    team: 'McLaren',   livery: 'mclaren',  baseSpeed: 262 },
-      { name: 'R. BARRICHELLO', team: 'Jordan',    livery: 'jordan',   baseSpeed: 260 },
-      { name: 'E. IRVINE',      team: 'Jordan',    livery: 'jordan',   baseSpeed: 258 },
-      { name: 'J. HERBERT',     team: 'Lotus',     livery: 'lotus',    baseSpeed: 256 },
-      { name: 'K. WENDLINGER',  team: 'Sauber',    livery: 'sauber',   baseSpeed: 254 }
+      { name: 'M. COSTA',  team: 'Aurora',  livery: 'aurora', baseSpeed: 275 },
+      { name: 'A. LIMA',       team: 'Vértice',  livery: 'vertice', baseSpeed: 272 },
+      { name: 'N. DUARTE',     team: 'Vértice',  livery: 'vertice', baseSpeed: 270 },
+      { name: 'J. RAMOS',       team: 'Rubra',   livery: 'rubra',  baseSpeed: 268 },
+      { name: 'G. NUNES',      team: 'Rubra',   livery: 'rubra',  baseSpeed: 266 },
+      { name: 'D. FREITAS',        team: 'Vértice',  livery: 'vertice', baseSpeed: 264 },
+      { name: 'M. LEAL',    team: 'Órbita',   livery: 'orbita',  baseSpeed: 262 },
+      { name: 'R. AZEVEDO', team: 'Faísca',    livery: 'faisca',   baseSpeed: 260 },
+      { name: 'E. ROCHA',      team: 'Faísca',    livery: 'faisca',   baseSpeed: 258 },
+      { name: 'J. CAMPOS',     team: 'Bosque',     livery: 'bosque',    baseSpeed: 256 },
+      { name: 'K. MORAES',  team: 'Maré',    livery: 'mare',   baseSpeed: 254 }
     ];
 
     const diffMod = this.getDifficultyMod();
@@ -1204,41 +1217,90 @@ class TopDownF1Game {
         button.classList.toggle('pressed', pressed);
       }
     };
-    const directionAt = (event) => {
+    const directionAt = (event, current) => {
+      if (current === 'left' || current === 'right') {
+        // Keep a held direction through thumb drift and the gap between buttons.
+        // Switch only after moving clearly inside the opposite button.
+        const opposite = current === 'left' ? 'right' : 'left';
+        const target = buttons[opposite].getBoundingClientRect();
+        const inset = Math.min(8, target.width * 0.12);
+        if (event.clientX >= target.left + inset && event.clientX <= target.right - inset &&
+            event.clientY >= target.top + inset && event.clientY <= target.bottom - inset) return opposite;
+        return current;
+      }
       const rect = pad.getBoundingClientRect();
       if (event.clientX < rect.left - 20 || event.clientX > rect.right + 20 ||
           event.clientY < rect.top - 20 || event.clientY > rect.bottom + 20) return null;
       return event.clientX < rect.left + rect.width / 2 ? 'left' : 'right';
     };
-    const bindPointer = (element, getKey) => {
-      element.addEventListener('pointerdown', (event) => {
+    const pointerResolvers = new Map();
+    const useTouchEvents = 'ontouchstart' in window;
+    const updateHeld = (id, event, getKey) => {
+      const next = getKey(event, pointers.get(id));
+      if (next && pointers.get(id) !== next) {
+        pointers.delete(id);
+        pointers.set(id, next);
+      }
+    };
+    const bindControl = (element, getKey) => {
+      // Touch Events retain their original target while the finger moves.
+      // They do not depend on pointer capture, which WebViews can release.
+      element.addEventListener('touchstart', event => {
+        event.preventDefault();
+        for (const touch of event.changedTouches) {
+          const id = `touch:${touch.identifier}`;
+          const key = getKey(touch);
+          if (key) pointers.set(id, key);
+        }
+        sync();
+      }, { passive: false });
+      element.addEventListener('touchmove', event => {
+        event.preventDefault();
+        for (const touch of event.changedTouches) {
+          const id = `touch:${touch.identifier}`;
+          if (pointers.has(id)) updateHeld(id, touch, getKey);
+        }
+        sync();
+      }, { passive: false });
+      element.addEventListener('pointerdown', event => {
+        if (useTouchEvents && event.pointerType === 'touch') return;
         if (event.pointerType === 'mouse' && event.button !== 0) return;
         event.preventDefault();
-        element.setPointerCapture(event.pointerId);
-        pointers.set(event.pointerId, getKey(event));
+        const key = getKey(event);
+        if (!key) return;
+        const id = `pointer:${event.pointerId}`;
+        pointers.set(id, key);
+        pointerResolvers.set(id, getKey);
+        // A capture error must not discard the press. Window listeners still
+        // receive release/cancel, so capture loss alone never releases steering.
+        try { element.setPointerCapture(event.pointerId); } catch { /* Window fallback. */ }
         sync();
       });
-      element.addEventListener('pointermove', (event) => {
-        if (!pointers.has(event.pointerId)) return;
-        const key = getKey(event);
-        if (pointers.get(event.pointerId) !== key) {
-          pointers.delete(event.pointerId);
-          pointers.set(event.pointerId, key);
-          sync();
-        }
-      });
-      const release = (event) => {
-        if (pointers.delete(event.pointerId)) sync();
-      };
-      element.addEventListener('pointerup', release);
-      element.addEventListener('pointercancel', release);
-      element.addEventListener('lostpointercapture', release);
       element.addEventListener('contextmenu', event => event.preventDefault());
     };
-    bindPointer(pad, directionAt);
-    bindPointer(buttons.brake, () => 'brake');
+    bindControl(pad, directionAt);
+    bindControl(buttons.brake, () => 'brake');
+    const releaseTouches = event => {
+      for (const touch of event.changedTouches) pointers.delete(`touch:${touch.identifier}`);
+      sync();
+    };
+    window.addEventListener('touchend', releaseTouches);
+    window.addEventListener('touchcancel', releaseTouches);
+    window.addEventListener('pointermove', event => {
+      const id = `pointer:${event.pointerId}`;
+      const resolver = pointerResolvers.get(id);
+      if (resolver && pointers.has(id)) { updateHeld(id, event, resolver); sync(); }
+    });
+    const releasePointer = event => {
+      const id = `pointer:${event.pointerId}`;
+      pointerResolvers.delete(id);
+      if (pointers.delete(id)) sync();
+    };
+    window.addEventListener('pointerup', releasePointer);
+    window.addEventListener('pointercancel', releasePointer);
     this.resetControls = () => {
       pointers.clear();
+      pointerResolvers.clear();
       sync();
     };
     window.addEventListener('blur', this.resetControls);
@@ -1438,14 +1500,14 @@ class TopDownF1Game {
 
     nameInput.addEventListener('input', (e) => {
       const val = e.target.value.trim().toUpperCase();
-      this.playerName = val.length > 0 ? val : 'A. SENNA';
+      this.playerName = val.length > 0 ? val : 'SEU PILOTO';
       this.player.name = this.playerName;
       document.getElementById('hudDriverName').innerText = this.playerName;
     });
 
     document.getElementById('startBtn').addEventListener('click', () => {
       const val = nameInput.value.trim().toUpperCase();
-      this.playerName = val.length > 0 ? val : 'A. SENNA';
+      this.playerName = val.length > 0 ? val : 'SEU PILOTO';
       this.player.name = this.playerName;
       document.getElementById('hudDriverName').innerText = this.playerName;
 
@@ -1729,7 +1791,7 @@ class TopDownF1Game {
     const overlay = document.getElementById('startLightsOverlay');
     const text = document.getElementById('gantryText');
     overlay.style.display = 'flex';
-    text.innerText = 'GRID DE FORMULA 1 PRONTO';
+    text.innerText = 'GRID PRONTO PARA A LARGADA';
 
     for (let i = 1; i <= 5; i++) {
       document.getElementById(`lamp${i}`).classList.remove('lit');
@@ -2504,12 +2566,12 @@ class TopDownF1Game {
     let wingCol = '#111111';
     let accentCol = '#ffffff';
 
-    if (livery === 'williams') { mainCol = '#002f6c'; wingCol = '#ffffff'; accentCol = '#ffd000'; }
-    else if (livery === 'mclaren') { mainCol = '#ffffff'; wingCol = '#ff1801'; accentCol = '#ff1801'; }
-    else if (livery === 'benetton') { mainCol = '#00a352'; wingCol = '#00c3e3'; accentCol = '#ffffff'; }
-    else if (livery === 'jordan') { mainCol = '#ffe600'; wingCol = '#111111'; accentCol = '#00ffff'; }
-    else if (livery === 'lotus') { mainCol = '#0b4a26'; wingCol = '#c5a059'; accentCol = '#ffd000'; }
-    else if (livery === 'sauber') { mainCol = '#003882'; wingCol = '#ffffff'; accentCol = '#00d0ff'; }
+    if (livery === 'vertice') { mainCol = '#002f6c'; wingCol = '#ffffff'; accentCol = '#ffd000'; }
+    else if (livery === 'orbita') { mainCol = '#ffffff'; wingCol = '#ff1801'; accentCol = '#ff1801'; }
+    else if (livery === 'aurora') { mainCol = '#00a352'; wingCol = '#00c3e3'; accentCol = '#ffffff'; }
+    else if (livery === 'faisca') { mainCol = '#ffe600'; wingCol = '#111111'; accentCol = '#00ffff'; }
+    else if (livery === 'bosque') { mainCol = '#0b4a26'; wingCol = '#c5a059'; accentCol = '#ffd000'; }
+    else if (livery === 'mare') { mainCol = '#003882'; wingCol = '#ffffff'; accentCol = '#00d0ff'; }
 
     if (isPlayer && this.carPaint) {
       mainCol = this.carPaint.body;

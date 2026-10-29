@@ -1,5 +1,8 @@
 plugins { id 'com.android.application' }
 
+def signingFile = rootProject.file('.signing/release-signing.json')
+def releaseCredentials = signingFile.exists() ? new groovy.json.JsonSlurper().parse(signingFile, 'UTF-8') : [:]
+
 android {
     namespace 'com.lmracing.f116bits'
     compileSdk 37
@@ -8,12 +11,26 @@ android {
         applicationId 'com.lmracing.f116bits'
         minSdk 23
         targetSdk 36
-        versionCode 2
-        versionName '0.1.1'
+        versionCode 7
+        versionName '1.0.2'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+    signingConfigs {
+        release {
+            storeFile rootProject.file('.signing/lm-retro-racing-release.jks')
+            storePassword releaseCredentials.storePassword
+            keyAlias releaseCredentials.alias
+            keyPassword releaseCredentials.storePassword
+        }
+    }
+    buildTypes {
+        release {
+            debuggable false
+            signingConfig signingConfigs.release
+        }
     }
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/game-assets')
     sourceSets.main.res.srcDir layout.buildDirectory.dir('generated/game-res')
@@ -21,14 +38,14 @@ android {
 
 def prepareGame = tasks.register('prepareGame') {
     inputs.files(fileTree('../..') {
-        include 'index.html', 'game.js', 'style.css', 'manifest.webmanifest', 'icons/**'
+        include 'index.html', 'game.js', 'style.css', 'manifest.webmanifest', 'icons/*.png', 'icons/*.svg'
     })
     outputs.dirs(layout.buildDirectory.dir('generated/game-assets'), layout.buildDirectory.dir('generated/game-res'))
     doLast {
         def assets = layout.buildDirectory.dir('generated/game-assets').get().asFile
         copy {
             from '../..'
-            include 'index.html', 'game.js', 'style.css', 'manifest.webmanifest', 'icons/**'
+            include 'index.html', 'game.js', 'style.css', 'manifest.webmanifest', 'icons/*.png', 'icons/*.svg'
             into assets
         }
         def html = new File(assets, 'index.html')

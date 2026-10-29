@@ -3,6 +3,7 @@
 /android/app/build/
 /android/.build/
 /android/.tooling/
+/android/.signing/
 /android/output/
 *.jks
 *.keystore

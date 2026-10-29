@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <application
-        android:label="F1 16-BITS"
+        android:label="LM Retro Racing"
         android:icon="@drawable/ic_launcher"
         android:theme="@style/GameTheme"
         android:allowBackup="false"

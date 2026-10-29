@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "F1 16-BITS - Grand Prix Clássico",
-  "short_name": "F1 16-BITS",
-  "description": "Corridas de Fórmula 1 em estilo retrô, com controles para celular.",
+  "name": "LM Retro Racing - Corrida Arcade",
+  "short_name": "LM Retro Racing",
+  "description": "Corridas arcade de monopostos em estilo retrô, com controles para celular.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",

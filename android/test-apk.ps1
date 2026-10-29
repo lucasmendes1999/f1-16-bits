@@ -1,4 +1,4 @@
-param([string]$ApkPath = (Join-Path $PSScriptRoot 'output\f1-16-bits-debug.apk'))
+param([string]$ApkPath = (Join-Path $PSScriptRoot 'output\lm-retro-racing-debug.apk'))
 $ErrorActionPreference = 'Stop'
 $bytes = [IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $ApkPath).Path)
 $end = -1

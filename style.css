@@ -1314,3 +1314,16 @@ padding-right: max(12px, env(safe-area-inset-right));
   .race-telemetry span:not(:empty) { padding: 3px 5px; }
   .race-notice { top: 42%; font-size: 10px; }
 }
+
+.home-brand img.home-brand-mark { display: inline-block; width: 30px; height: 30px; vertical-align: middle; object-fit: contain; flex-shrink: 0; }
+#homeTitle > span:not(.home-title-outline) { font-size: .64em; letter-spacing: -.025em; }
+
+/* Keep steering within easy thumb reach, away from Android edge gestures. */
+@media (hover: none) and (pointer: coarse), (max-width: 900px) {
+  #touch-controls { padding-left: max(28px, env(safe-area-inset-left)); }
+  .d-pad { gap: 12px; }
+  .d-pad .t-btn { width: 76px; height: 76px; flex: 0 0 76px; padding: 0; }
+}
+@media (orientation: landscape) and (max-height: 700px) {
+  .d-pad .t-btn { width: 72px; height: 72px; flex-basis: 72px; }
+}

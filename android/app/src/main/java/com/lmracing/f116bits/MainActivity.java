@@ -89,6 +89,7 @@ public final class MainActivity extends Activity {
         else if (file.endsWith(".js")) mime = "text/javascript";
         else if (file.endsWith(".css")) mime = "text/css";
         else if (file.endsWith(".png")) mime = "image/png";
+        else if (file.endsWith(".svg")) mime = "image/svg+xml";
         else if (file.endsWith(".webmanifest")) mime = "application/manifest+json";
         try { return response(200, "OK", mime, getAssets().open(file)); }
         catch (IOException error) {

@@ -7,12 +7,12 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="F1 16-BITS">
+  <meta name="apple-mobile-web-app-title" content="LM Retro Racing">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <script src="pwa.js" defer></script>
-  <title>F1 16-BITS - Grand Prix Clássico</title>
+  <title>LM Retro Racing - Corrida Arcade</title>
   
   <!-- Fontes Retrô Arcade Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,7 +48,7 @@
       </div>
     </div>
 
-    <!-- Pórtico de Largada da F1 (5 Luzes Vermelhas) -->
+    <!-- Pórtico de Largada (5 Luzes Vermelhas) -->
     <div id="startLightsOverlay">
       <div class="gantry-box">
         <div class="gantry-lamp" id="lamp1"></div>
@@ -57,7 +57,7 @@
         <div class="gantry-lamp" id="lamp4"></div>
         <div class="gantry-lamp" id="lamp5"></div>
       </div>
-      <div class="gantry-text" id="gantryText">GRID DE FORMULA 1 PRONTO</div>
+      <div class="gantry-text" id="gantryText">GRID PRONTO PARA A LARGADA</div>
     </div>
 
     <!-- HUD Overlay Top-Down da Corrida -->
@@ -71,12 +71,12 @@
       <div id="trackLimitNotice" class="track-limit-notice" role="status" aria-live="off" hidden></div>
       <div class="hud-top">
         <div class="hud-box gold">
-          <div class="hud-title">POSIÇÃO F1</div>
+          <div class="hud-title">POSIÇÃO</div>
           <div class="hud-val" id="hudPos">12º / 12</div>
         </div>
         <div class="hud-box cyan" style="text-align: center;">
           <div class="hud-title">CIRCUITO / VOLTA</div>
-          <div class="hud-val" id="hudLap">INTERLAGOS GP • 1 / 3</div>
+          <div class="hud-val" id="hudLap">VALE DO SOL GP • 1 / 3</div>
         </div>
         <div class="top-right-wrap">
           <div class="top-action-row">
@@ -122,14 +122,14 @@
     <div id="titleScreen" class="screen-overlay">
       <div class="home-shell">
         <header class="home-header">
-          <span class="home-brand"><span class="home-brand-mark" aria-hidden="true">///</span> LM RACING</span>
+          <span class="home-brand"><img class="home-brand-mark" src="icons/brand-mark.svg" width="30" height="30" alt=""> LM RETRO RACING</span>
           <span class="home-edition"><span aria-hidden="true"></span> GRAND PRIX · 16-BIT EDITION</span>
         </header>
 
         <div class="home-main">
           <section class="home-showcase" aria-labelledby="homeTitle">
             <p class="home-eyebrow">O ESPÍRITO DOS CLÁSSICOS. A SUA CORRIDA.</p>
-            <h1 id="homeTitle">F1 <span>16-BITS</span><span class="home-title-outline" aria-hidden="true">GRAND PRIX</span></h1>
+            <h1 id="homeTitle">LM <span>RETRO RACING</span><span class="home-title-outline" aria-hidden="true">GRAND PRIX</span></h1>
             <p class="home-intro">Conquiste a pole. Encontre a tangente.<br>Faça história na última volta.</p>
             <div class="home-car-stage" aria-hidden="true">
               <div class="home-speed-line home-speed-line-one"></div>
@@ -173,7 +173,7 @@
             <h2 id="entryTitle">Seu lugar no grid <br>começa aqui.</h2>
             <div class="driver-name-box">
               <label for="playerNameInput">01 — NOME DO PILOTO</label>
-              <input type="text" id="playerNameInput" class="driver-input" maxlength="14" value="A. SENNA" placeholder="SEU NOME" autocomplete="off" spellcheck="false">
+              <input type="text" id="playerNameInput" class="driver-input" maxlength="14" value="SEU PILOTO" placeholder="SEU NOME" autocomplete="off" spellcheck="false">
             </div>
             <fieldset class="home-difficulty">
               <legend>02 — ESCOLHA SEU DESAFIO</legend>
@@ -219,8 +219,8 @@
     <!-- Menu Dedicado de Seleção de Pistas -->
     <div id="trackSelectScreen" class="screen-overlay" style="display: none;">
       <div class="track-modal-box">
-        <header class="circuit-header"><span class="home-brand"><span class="home-brand-mark" aria-hidden="true">///</span> LM RACING</span><span>CONFIGURAÇÃO DO GP · 02 / 02</span></header>
-        <div class="circuit-heading"><p>SEU PRÓXIMO DESAFIO</p><h1>Escolha seu circuito.</h1><span>06 PISTAS LENDÁRIAS · UMA POLE EM JOGO</span></div>
+        <header class="circuit-header"><span class="home-brand"><img class="home-brand-mark" src="icons/brand-mark.svg" width="30" height="30" alt=""> LM RETRO RACING</span><span>CONFIGURAÇÃO DO GP · 02 / 02</span></header>
+        <div class="circuit-heading"><p>SEU PRÓXIMO DESAFIO</p><h1>Escolha seu circuito.</h1><span>06 CIRCUITOS DA LIGA · UMA POLE EM JOGO</span></div>
         <p class="qualify-note">Faça uma volta de classificação com a pista livre para definir sua posição de largada.</p>
 
         <section class="championship-panel" aria-label="Modo de jogo">
@@ -232,32 +232,32 @@
         </section>
         <div class="track-cards-grid">
           <button type="button" class="track-card selected" data-track="interlagos" aria-pressed="true">
-            <div class="track-card-title">🇧🇷 INTERLAGOS</div>
-            <div class="track-card-desc">S do Senna fluido, Reta Oposta, Ferradura, Bico de Pato e subida da vitória.</div>
+            <div class="track-card-title">☀ VALE DO SOL</div>
+            <div class="track-card-desc">Curvas do Horizonte, Reta Solar e uma sequência de curvas para buscar a melhor tangente.</div>
           </button>
           <button type="button" class="track-card" data-track="monza" aria-pressed="false">
-            <div class="track-card-title">🇮🇹 MONZA</div>
-            <div class="track-card-desc">O Templo da Velocidade. Retas gigantescas, chicanes Rettifilo e Ascari, e a Parabólica.</div>
+            <div class="track-card-title">◆ RETA RUBI</div>
+            <div class="track-card-desc">Acelere na Reta das Faíscas, freie na Chicane Rubra e contorne o Arco Final.</div>
           </button>
           <button type="button" class="track-card" data-track="silverstone" aria-pressed="false">
-            <div class="track-card-title">🇬🇧 SILVERSTONE</div>
-            <div class="track-card-desc">Traçado clássico e técnico. Copse, curvas lendárias Maggotts e Becketts e Reta Hangar.</div>
+            <div class="track-card-title">↝ CAMPO DOS VENTOS</div>
+            <div class="track-card-desc">Dispute as Curvas da Brisa, o Cotovelo Norte e a veloz Reta do Moinho.</div>
           </button>
           <button type="button" class="track-card" data-track="spa" aria-pressed="false">
-            <div class="track-card-title">🇧🇪 SPA-FRANCORCHAMPS</div>
-            <div class="track-card-desc">Montanha-russa da F1. Grampo La Source, subida épica da Eau Rouge e Pouhon veloz.</div>
+            <div class="track-card-title">▲ SERRA NEBULOSA</div>
+            <div class="track-card-desc">Enfrente a Curva da Névoa, o Grampo da Serra e a sequência do Vale Azul.</div>
           </button>
           <button type="button" class="track-card" data-track="suzuka" aria-pressed="false">
-            <div class="track-card-title">🇯🇵 SUZUKA</div>
-            <div class="track-card-desc">Técnico e desafiador. Os "S" de alta aderência, Degner, Grampo fechado e a curva rápida 130R.</div>
+            <div class="track-card-title">✿ JARDIM DAS CURVAS</div>
+            <div class="track-card-desc">Encontre o ritmo nos Esses do Jardim, no Grampo das Flores e na Curva do Vento.</div>
           </button>
           <button type="button" class="track-card" data-track="monaco" aria-pressed="false">
-            <div class="track-card-title">🇲🇨 MÔNACO</div>
-            <div class="track-card-desc">O lendário circuito de rua. Subida do Cassino, Grampo mais lento da F1, Túnel e Piscina.</div>
+            <div class="track-card-title">✦ PORTO NEON</div>
+            <div class="track-card-desc">Corrida urbana com o Grampo do Farol, a Curva dos Armazéns e o Passeio da Marina.</div>
           </button>
           <button type="button" class="track-card" data-track="random" aria-pressed="false">
             <div class="track-card-title">🎲 GP ALEATÓRIO</div>
-            <div class="track-card-desc">Sorteia qualquer autódromo oficial da temporada de forma surpresa!</div>
+            <div class="track-card-desc">Sorteia um dos seis circuitos da liga para surpreender você!</div>
           </button>
         </div>
 
@@ -293,8 +293,8 @@
     <!-- Controles de Toque para Celular / Tablets -->
     <div id="touch-controls">
       <div class="d-pad">
-        <div class="t-btn" id="tLeft">◀</div>
-        <div class="t-btn" id="tRight">▶</div>
+        <button type="button" class="t-btn" id="tLeft" aria-label="Virar à esquerda">◀</button>
+        <button type="button" class="t-btn" id="tRight" aria-label="Virar à direita">▶</button>
       </div>
       <div class="action-pad">
         <div class="t-btn t-brake" id="tBrake">FREIO</div>
@@ -329,7 +329,7 @@
       </section>
       <section id="championshipResults" class="championship-panel" aria-label="Classificação do campeonato" hidden></section>
       <section class="finish-stats" aria-label="Seu resultado">
-        <div class="finish-stat"><span>SEU PILOTO</span><strong id="finishPilotName">A. SENNA</strong><small>BANDEIRA QUADRICULADA</small></div>
+        <div class="finish-stat"><span>SEU PILOTO</span><strong id="finishPilotName">SEU PILOTO</strong><small>BANDEIRA QUADRICULADA</small></div>
         <div class="finish-stat"><span>TEMPO DE PROVA</span><strong id="finishTime">00:00.00</strong><small>TEMPO TOTAL</small></div>
         <div class="finish-stat"><span>MELHOR VOLTA</span><strong id="bestLapTime">00:00.00</strong><small>SUA VOLTA MAIS RÁPIDA</small></div>
       </section>

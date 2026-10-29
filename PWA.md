@@ -1,4 +1,4 @@
-# F1 16-BITS como PWA
+# LM Retro Racing como PWA
 
 Publique esta pasta em um servidor HTTPS. Para desenvolvimento no mesmo aparelho,
 também é possível usar localhost. Abrir index.html diretamente como arquivo não

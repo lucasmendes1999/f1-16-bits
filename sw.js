@@ -1,9 +1,9 @@
 // Increment this version whenever the local game files change.
 const CACHE_PREFIX = 'f1-16-bits-';
-const CACHE_NAME = `${CACHE_PREFIX}v34`;
+const CACHE_NAME = `${CACHE_PREFIX}v38`;
 const APP_FILES = [
   './', './index.html', './style.css', './game.js', './pwa.js',
-  './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png',
+  './manifest.webmanifest', './icons/brand-mark.svg', './icons/icon-192.png', './icons/icon-512.png',
   './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
 ];
 

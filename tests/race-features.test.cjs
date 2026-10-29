@@ -131,6 +131,12 @@ function runRaceFeatureTests(source) {
   assert(document.getElementById('finishTime').innerText === '01:00.00', 'Use simulation time, excluding pauses');
   const resumed = Object.create(Game.prototype); resumed.setupChampionship();
   assert(resumed.championship.round === 6 && resumed.championship.weather === 'rain', 'Restore championship');
+  const legacySeason = JSON.parse(storage.getItem('f1-championship-v1'));
+  legacySeason.drivers[1].id = legacySeason.drivers[1].name = 'M. SCHUMACHER';
+  storage.setItem('f1-championship-v1', JSON.stringify(legacySeason));
+  const migrated = Object.create(Game.prototype); migrated.setupChampionship();
+  assert(migrated.championship.drivers[1].id === 'M. COSTA' &&
+    migrated.championship.drivers[1].points === legacySeason.drivers[1].points, 'Rebrand preserves championship points');
 
   // Canvas pass checks balanced save/restore and honors reduced visual effects.
   let depth = 0, strokes = 0;
