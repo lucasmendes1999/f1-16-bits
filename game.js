@@ -82,7 +82,9 @@ class RetroSoundEngine {
   updateEngine(speedRatio) {
     if (!this.ctx || this.isMuted || !this.engineOsc) return;
     const base = 95;
-    const targetFreq = base + speedRatio * 320;
+    const gear = Math.min(6, 1 + Math.floor(Math.max(0, speedRatio) * 6));
+    const gearRpm = Math.max(0, Math.min(1, speedRatio * 6 - (gear - 1)));
+    const targetFreq = base + gearRpm * 220 + gear * 16;
     this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.05);
     this.engineGain.gain.setTargetAtTime(0.06 + speedRatio * 0.08, this.ctx.currentTime, 0.05);
   }
@@ -100,6 +102,20 @@ class RetroSoundEngine {
     gain.connect(this.ctx.destination);
     osc.start();
     osc.stop(this.ctx.currentTime + 0.18);
+  }
+
+  playKerb() {
+    if (!this.ctx || this.isMuted) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(55, this.ctx.currentTime);
+    gain.gain.setValueAtTime(0.035, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.07);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.08);
   }
 
   playLap() {
@@ -793,8 +809,269 @@ class TopDownF1Game {
     this.setupDifficultyButtons();
     this.setupTrackCards();
     this.setupCarCustomization();
+    this.setupRaceFeatures();
+    this.setupChampionship();
     this.initGrid();
     this.render();
+  }
+
+  setupRaceFeatures() {
+    this.sessionRecords = new Map();
+    this.unsavedRecordKeys = new Set();
+    this.weather = 'dry';
+    this.reducedEffects = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || false;
+    this.ghostEnabled = true;
+    try {
+      const preferences = JSON.parse(localStorage.getItem('f1-race-preferences'));
+      if (typeof preferences?.reducedEffects === 'boolean') this.reducedEffects = preferences.reducedEffects;
+      if (typeof preferences?.ghostEnabled === 'boolean') this.ghostEnabled = preferences.ghostEnabled;
+    } catch { /* Preferences are optional. */ }
+    const sync = () => {
+      const effects = document.getElementById('modalEffectsBtn');
+      effects.textContent = `EFEITOS REDUZIDOS: ${this.reducedEffects ? 'SIM' : 'NÃO'}`;
+      effects.setAttribute('aria-pressed', String(this.reducedEffects));
+      const ghost = document.getElementById('modalGhostBtn');
+      ghost.textContent = `CARRO FANTASMA: ${this.ghostEnabled ? 'LIGADO' : 'DESLIGADO'}`;
+      ghost.setAttribute('aria-pressed', String(this.ghostEnabled));
+      try { localStorage.setItem('f1-race-preferences', JSON.stringify({ reducedEffects: this.reducedEffects, ghostEnabled: this.ghostEnabled })); } catch { /* Optional persistence. */ }
+    };
+    document.getElementById('modalEffectsBtn').addEventListener('click', () => { this.reducedEffects = !this.reducedEffects; sync(); });
+    document.getElementById('modalGhostBtn').addEventListener('click', () => { this.ghostEnabled = !this.ghostEnabled; sync(); });
+    sync();
+    this.resetLapFeatures();
+  }
+
+  recordKey() {
+    return `f1-record-v1-${this.selectedTrack}-${this.weather}-${this.difficulty}`;
+  }
+
+  resetLapFeatures() {
+    this.timedLap = null;
+    this.record = this.sessionRecords.get(this.recordKey()) || null;
+    this.noticeUntil = 0;
+    this.shake = 0;
+    this.kerbCooldown = 0;
+    this.sprayCooldown = 0;
+    this.recordSaveFailed = this.unsavedRecordKeys.has(this.recordKey());
+    this.ghostCursor = 0;
+    document.getElementById('raceNotice').hidden = true;
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.recordKey()));
+      if (saved && Number.isFinite(saved.time) && saved.time > 0 && saved.time <= 600 &&
+          Array.isArray(saved.samples) && saved.samples.length >= 2 && saved.samples.length <= 6002 &&
+          saved.samples[0].t === 0 && saved.samples[0].progress === 0 &&
+          saved.samples.every((sample, index) =>
+            ['t', 'x', 'y', 'angle', 'progress'].every(key => Number.isFinite(sample[key])) &&
+            sample.t >= 0 && sample.t <= saved.time && sample.progress >= 0 &&
+            (!index || (sample.t > saved.samples[index - 1].t && sample.progress >= saved.samples[index - 1].progress)))) {
+        if (!this.record || saved.time < this.record.time) this.record = saved;
+      }
+    } catch { /* No record yet, or storage is unavailable. */ }
+  }
+
+  notifyRace(message) {
+    const notice = document.getElementById('raceNotice');
+    notice.textContent = message;
+    notice.hidden = false;
+    this.noticeUntil = this.sessionElapsed + 4;
+  }
+
+  beginTimedLap() {
+    this.ghostCursor = 0;
+    this.timedLap = { start: this.sessionElapsed, origin: this.player.raceProgress, valid: true, samples: [] };
+    this.sampleTimedLap(true);
+  }
+
+  sampleTimedLap(force = false) {
+    const lap = this.timedLap;
+    if (!lap) return;
+    const t = this.sessionElapsed - lap.start;
+    const last = lap.samples[lap.samples.length - 1];
+    if (t > 600 || lap.samples.length >= 6002) { lap.valid = false; return; }
+    if (last && t <= last.t) return;
+    if (!force && last && t - last.t < 0.1) return;
+    const progress = Math.max(0, this.player.raceProgress - lap.origin);
+    if (last && progress < last.progress - 3) lap.valid = false;
+    lap.samples.push({ t, x: this.player.x, y: this.player.y, angle: this.player.angle,
+      progress: Math.max(last?.progress || 0, progress) });
+  }
+
+  completeTimedLap() {
+    const lap = this.timedLap;
+    if (!lap) return;
+    this.sampleTimedLap(true);
+    const time = this.sessionElapsed - lap.start;
+    const progress = this.player.raceProgress - lap.origin;
+    if (lap.valid && progress >= this.track.totalLength * 0.95 && time > 0 && lap.samples.length >= 2 &&
+        (!this.record || time < this.record.time)) {
+      this.record = { time, samples: lap.samples };
+      this.sessionRecords.set(this.recordKey(), this.record);
+      try {
+        localStorage.setItem(this.recordKey(), JSON.stringify(this.record));
+        this.recordSaveFailed = false;
+        this.unsavedRecordKeys.delete(this.recordKey());
+      } catch {
+        this.recordSaveFailed = true;
+        this.unsavedRecordKeys.add(this.recordKey());
+      }
+      this.notifyRace(`NOVO RECORDE! ${this.formatTime(time)}${this.recordSaveFailed ? ' · SOMENTE NESTA SESSÃO' : ''}`);
+    } else if (!lap.valid) {
+      this.notifyRace('VOLTA SEM RECORDE · LIMITES DA PISTA');
+    } else {
+      this.notifyRace(`VOLTA COMPLETA · ${this.formatTime(time)}`);
+    }
+    this.timedLap = null;
+  }
+
+  ghostAtTime() {
+    if (!this.record || !this.timedLap || !this.ghostEnabled) return null;
+    const time = this.sessionElapsed - this.timedLap.start;
+    const samples = this.record.samples;
+    if (time > this.record.time) return null;
+    while (this.ghostCursor < samples.length - 2 && samples[this.ghostCursor + 1].t < time) this.ghostCursor++;
+    const a = samples[this.ghostCursor], b = samples[this.ghostCursor + 1];
+    const mix = Math.max(0, Math.min(1, (time - a.t) / (b.t - a.t)));
+    const turn = Math.atan2(Math.sin(b.angle - a.angle), Math.cos(b.angle - a.angle));
+    return { x: a.x + (b.x - a.x) * mix, y: a.y + (b.y - a.y) * mix, angle: a.angle + turn * mix };
+  }
+
+  updateRaceTelemetry() {
+    const active = this.raceStarted && !this.countdownActive;
+    const gaps = document.getElementById('hudGaps');
+    gaps.textContent = '';
+    if (active && this.session === 'race') {
+      const ordered = [...this.racers.map(r => ({ name: r.name, speed: r.speed * 2.2,
+        progress: (r.lap - 1) * this.track.totalLength + r.trackDist })),
+        { isPlayer: true, progress: this.player.raceProgress }].sort((a, b) => b.progress - a.progress);
+      const index = ordered.findIndex(r => r.isPlayer);
+      const ahead = ordered[index - 1], behind = ordered[index + 1];
+      // Estimated gaps from distance and local speed, not measured timing-line intervals.
+      const frontGap = ahead ? `${ahead.name} +${((ahead.progress - this.player.raceProgress) / Math.max(80, this.player.speed * 2.1)).toFixed(1)}s` : 'VOCÊ LIDERA';
+      const backGap = behind ? `${behind.name} −${((this.player.raceProgress - behind.progress) / Math.max(80, behind.speed)).toFixed(1)}s` : 'ÚLTIMA POSIÇÃO';
+      gaps.textContent = `INTERVALOS EST. · ${frontGap} | ${backGap}`;
+    }
+    document.getElementById('hudRecord').textContent = active
+      ? `${this.weather === 'rain' ? 'CHUVA' : 'SECO'} · RECORDE: ${this.record ? this.formatTime(this.record.time) : '--:--.--'}${this.recordSaveFailed ? ' (NÃO SALVO)' : ''}` : '';
+    const delta = document.getElementById('hudDelta');
+    delta.textContent = '';
+    if (active && this.record && this.timedLap && this.ghostEnabled) {
+      const progress = this.player.raceProgress - this.timedLap.origin;
+      const samples = this.record.samples;
+      let lo = 0, hi = samples.length - 1;
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (samples[mid].progress < progress) lo = mid; else hi = mid; }
+      const a = samples[lo], b = samples[hi];
+      if (progress >= 0 && progress <= b.progress) {
+        const mix = Math.max(0, Math.min(1, (progress - a.progress) / Math.max(0.001, b.progress - a.progress)));
+        const difference = this.sessionElapsed - this.timedLap.start - (a.t + (b.t - a.t) * mix);
+        delta.textContent = `${this.timedLap.valid ? 'FANTASMA' : 'VOLTA INVÁLIDA'} · ${difference >= 0 ? '+' : '−'}${Math.abs(difference).toFixed(2)}s`;
+        delta.dataset.faster = String(difference <= 0);
+      }
+    }
+    if (this.sessionElapsed >= this.noticeUntil) document.getElementById('raceNotice').hidden = true;
+  }
+
+  setupChampionship() {
+    this.championshipTracks = ['interlagos', 'monza', 'silverstone', 'spa', 'suzuka', 'monaco'];
+    this.raceMode = 'single';
+    this.championship = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem('f1-championship-v1'));
+      if (saved && saved.version === 1 && Number.isInteger(saved.round) && saved.round >= 0 && saved.round <= 6 &&
+          typeof saved.playerName === 'string' && saved.playerName.length <= 14 &&
+          ['easy', 'medium', 'hard'].includes(saved.difficulty) && Number.isInteger(saved.laps) && saved.laps >= 1 && saved.laps <= 10 &&
+          Array.isArray(saved.drivers) && saved.drivers.length === 12 &&
+          saved.drivers.filter(driver => driver.id === 'player').length === 1 &&
+          new Set(saved.drivers.map(driver => driver.id)).size === 12 &&
+          saved.drivers.every(driver => typeof driver.id === 'string' && typeof driver.name === 'string' &&
+            Number.isInteger(driver.points) && driver.points >= 0 && Array.isArray(driver.finishes) &&
+            driver.finishes.length === saved.round && driver.finishes.every(place => Number.isInteger(place) && place >= 1 && place <= 12))) {
+        this.championship = saved;
+      }
+    } catch { /* A season can also be played without browser storage. */ }
+    document.getElementById('raceMode').addEventListener('change', event => {
+      this.raceMode = event.target.value;
+      this.refreshChampionshipMenu();
+    });
+    document.getElementById('newChampionshipBtn').addEventListener('click', () => {
+      if (this.championship?.round < 6 && !window.confirm('Apagar os pontos da temporada atual e começar outra?')) return;
+      this.championship = null;
+      try { localStorage.removeItem('f1-championship-v1'); } catch { /* Optional persistence. */ }
+      this.refreshChampionshipMenu();
+    });
+    this.refreshChampionshipMenu();
+  }
+
+  saveChampionship() {
+    try {
+      localStorage.setItem('f1-championship-v1', JSON.stringify(this.championship));
+      this.championshipSaveFailed = false;
+    } catch { this.championshipSaveFailed = true; }
+  }
+
+  createChampionship() {
+    this.initGrid();
+    this.championship = {
+      version: 1, round: 0, playerName: this.playerName, difficulty: this.difficulty,
+      laps: Math.max(1, Math.min(10, Number(document.getElementById('raceLaps').value) || 3)),
+      weather: document.getElementById('raceWeather').value === 'rain' ? 'rain' : 'dry',
+      drivers: [{ id: 'player', name: this.playerName, points: 0, finishes: [] },
+        ...this.racers.map(driver => ({ id: driver.name, name: driver.name, points: 0, finishes: [] }))]
+    };
+    this.saveChampionship();
+  }
+
+  championshipTable(container) {
+    container.replaceChildren();
+    if (!this.championship) return;
+    const drivers = [...this.championship.drivers].sort((a, b) => {
+      if (a.points !== b.points) return b.points - a.points;
+      for (let place = 1; place <= 12; place++) {
+        const difference = b.finishes.filter(p => p === place).length - a.finishes.filter(p => p === place).length;
+        if (difference) return difference;
+      }
+      return a.id.localeCompare(b.id);
+    });
+    const heading = document.createElement('p');
+    heading.textContent = this.championship.round === 6
+      ? `TEMPORADA CONCLUÍDA · CAMPEÃO: ${drivers[0].name}`
+      : `CAMPEONATO · ${this.championship.round}/6 ETAPAS CONCLUÍDAS`;
+    const table = document.createElement('table');
+    table.className = 'qualify-table';
+    const head = table.createTHead().insertRow();
+    ['POS.', 'PILOTO', 'PTS'].forEach(label => {
+      const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = label; head.appendChild(cell);
+    });
+    const body = table.createTBody();
+    drivers.forEach((driver, index) => {
+      const row = body.insertRow();
+      if (driver.id === 'player') row.className = 'qualify-player';
+      [index + 1, driver.name, driver.points].forEach(value => { row.insertCell().textContent = value; });
+    });
+    container.append(heading, table);
+    if (this.championshipSaveFailed) {
+      const warning = document.createElement('p');
+      warning.textContent = 'Não foi possível salvar neste navegador. O progresso ficará disponível enquanto esta página estiver aberta.';
+      container.appendChild(warning);
+    }
+  }
+
+  refreshChampionshipMenu() {
+    const active = this.raceMode === 'championship';
+    const season = this.championship;
+    document.querySelectorAll('.track-card').forEach(card => { card.disabled = active; });
+    document.getElementById('raceLaps').disabled = active && !!season && season.round < 6;
+    const weatherSelect = document.getElementById('raceWeather');
+    weatherSelect.disabled = active && !!season && season.round < 6;
+    if (weatherSelect.disabled) weatherSelect.value = season.weather === 'rain' ? 'rain' : 'dry';
+    document.getElementById('newChampionshipBtn').hidden = !active || !season;
+    document.getElementById('championshipInfo').textContent = active
+      ? (season && season.round < 6
+        ? `${season.playerName} · PRÓXIMA ETAPA: ${season.round + 1}/6 · ${this.championshipTracks[season.round].toUpperCase()}`
+        : 'Interlagos → Monza → Silverstone → Spa → Suzuka → Mônaco. Pontos: 25, 18, 15, 12, 10, 8, 6, 4, 2, 1. Desempate por melhores colocações.')
+      : 'Escolha qualquer circuito para disputar um GP avulso.';
+    const table = document.getElementById('menuChampionshipTable');
+    table.hidden = !active || !season;
+    this.championshipTable(table);
   }
 
   initGrid() {
@@ -857,6 +1134,10 @@ class TopDownF1Game {
         trackDist: startDist,
         laneOffset: laneOffset,
         targetLaneOffset: laneOffset,
+        aggression: 0.35 + Math.random() * 0.65,
+        rhythm: Math.random() * Math.PI * 2,
+        decisionCooldown: 0,
+        mistakeTimer: 0,
         x: boxX,
         y: boxY,
         angle: 0,
@@ -1084,7 +1365,7 @@ class TopDownF1Game {
   }
 
   setupDifficultyButtons() {
-    const btns = document.querySelectorAll('.diff-btn');
+    const btns = document.querySelectorAll('[data-diff]');
     btns.forEach(btn => {
       btn.addEventListener('click', () => {
         btns.forEach(b => b.classList.remove('selected'));
@@ -1152,6 +1433,7 @@ class TopDownF1Game {
       document.getElementById('hudDriverName').innerText = this.playerName;
 
       titleScreen.style.display = 'none';
+      this.refreshChampionshipMenu();
       trackScreen.style.display = 'flex';
     });
 
@@ -1219,6 +1501,10 @@ class TopDownF1Game {
     this.sessionToken++;
     cancelAnimationFrame(this.animationFrame);
     this.session = 'menu';
+    document.getElementById('raceNotice').hidden = true;
+    ['hudGaps', 'hudRecord', 'hudDelta'].forEach(id => { document.getElementById(id).textContent = ''; });
+    this.timedLap = null;
+    this.shake = 0;
     this.gridPosition = 12;
     document.getElementById('qualifyScreen').style.display = 'none';
     this.resetControls();
@@ -1287,6 +1573,16 @@ class TopDownF1Game {
   }
 
   startGame() {
+    if (this.raceMode === 'championship') {
+      if (!this.championship || this.championship.round >= this.championshipTracks.length) this.createChampionship();
+      this.selectedTrack = this.championshipTracks[this.championship.round];
+      this.track = new TopDownTrack(this.selectedTrack);
+      this.playerName = this.championship.playerName;
+      this.player.name = this.playerName;
+      this.difficulty = this.championship.difficulty;
+      document.getElementById('raceLaps').value = String(this.championship.laps);
+      document.getElementById('raceWeather').value = this.championship.weather === 'rain' ? 'rain' : 'dry';
+    }
     const selectedLaps = Number(document.getElementById('raceLaps').value);
     this.totalLaps = Number.isFinite(selectedLaps)
       ? Math.max(1, Math.min(10, Math.floor(selectedLaps))) : 3;
@@ -1304,11 +1600,13 @@ class TopDownF1Game {
     document.getElementById('qualifyScreen').style.display = 'none';
     this.resetControls();
     const activeCard = document.querySelector('.track-card.selected');
-    if (activeCard && activeCard.getAttribute('data-track') === 'random') {
+    if (this.raceMode !== 'championship' && activeCard && activeCard.getAttribute('data-track') === 'random') {
       const tracks = ['interlagos', 'monza', 'silverstone', 'spa', 'suzuka', 'monaco'];
       this.selectedTrack = tracks[Math.floor(Math.random() * tracks.length)];
       this.track = new TopDownTrack(this.selectedTrack);
     }
+    this.weather = document.getElementById('raceWeather').value === 'rain' ? 'rain' : 'dry';
+    this.resetLapFeatures();
 
     document.getElementById('titleScreen').style.display = 'none';
     document.getElementById('trackSelectScreen').style.display = 'none';
@@ -1326,7 +1624,7 @@ class TopDownF1Game {
 
     this.initGrid();
     // Qualifying has its own pace so the simulated times remain competitive.
-    const qualifyingPace = this.getDifficultyMod().qualifyingPace;
+    const qualifyingPace = this.getDifficultyMod().qualifyingPace * (this.weather === 'rain' ? 0.82 : 1);
     this.qualifyingRivals = this.racers.map(racer => ({
       name: racer.name,
       time: this.track.totalLength / (racer.maxSpeed * 2.2 * qualifyingPace) + 0.8
@@ -1353,6 +1651,7 @@ class TopDownF1Game {
   }
 
   finishQualifying() {
+    this.completeTimedLap();
     const time = this.sessionElapsed - this.qualifyingStartTime;
     const results = [...this.qualifyingRivals, { name: this.playerName, time, isPlayer: true }]
       .sort((a, b) => a.time - b.time || (a.isPlayer ? 1 : -1));
@@ -1385,6 +1684,8 @@ class TopDownF1Game {
     cancelAnimationFrame(this.animationFrame);
     this.session = 'race';
     this.sessionElapsed = 0;
+    this.resetLapFeatures();
+    this.lapStartElapsed = 0;
     this.trackLimitPenalty = 0;
     this.trackLimitExcursion = false;
     this.trackLimitRecovery = 0;
@@ -1448,6 +1749,8 @@ class TopDownF1Game {
 
           this.lapStartTime = performance.now();
           this.totalStartTime = performance.now();
+          this.lapStartElapsed = 0;
+          if (this.totalLaps === 1) this.notifyRace('ÚLTIMA VOLTA · VALE TUDO PELA VITÓRIA!');
 
           setTimeout(() => {
             if (token !== this.sessionToken) return;
@@ -1488,20 +1791,26 @@ class TopDownF1Game {
     }
     if (!this.raceStarted) return;
     this.sessionElapsed += dt;
+    this.shake = Math.max(0, this.shake - dt * 16);
+    this.kerbCooldown = Math.max(0, this.kerbCooldown - dt);
+    this.sprayCooldown = Math.max(0, this.sprayCooldown - dt);
 
     const p = this.player;
 
     if (this.keys.brake) {
-      p.speed = Math.max(0, p.speed - p.brake * dt);
+      p.speed = Math.max(0, p.speed - p.brake * (this.weather === 'rain' ? 0.65 : 1) * dt);
+      if (p.speed > 100 && this.weather !== 'rain') this.addSkidmark(p);
       if (Math.random() < 0.35) {
         this.addParticle(p.x, p.y, '#ffffff', 0.3);
       }
     } else {
-      p.speed = Math.min(p.maxSpeed, p.speed + p.accel * dt);
+      const weatherMax = p.maxSpeed * (this.weather === 'rain' ? 0.9 : 1);
+      p.speed = Math.min(weatherMax, p.speed + p.accel * (this.weather === 'rain' ? 0.82 : 1) * dt);
     }
 
     const speedRatio = p.speed / p.maxSpeed;
-    const dynamicSteer = p.steerSpeed * (0.65 + (1 - speedRatio) * 0.35);
+    const dynamicSteer = p.steerSpeed * (0.65 + (1 - speedRatio) * 0.35) *
+      (this.weather === 'rain' ? 0.78 : 1);
 
     if (this.keys.left) {
       p.angle -= dynamicSteer * dt;
@@ -1524,6 +1833,21 @@ class TopDownF1Game {
     const halfRoad = this.track.width / 2;
     const isOnRoad = distFromCenter <= (halfRoad + 22);
     const isOnGrass = distFromCenter > halfRoad + this.track.runoffWidth;
+    if (this.timedLap && !isOnRoad) this.timedLap.valid = false;
+    if (distFromCenter >= halfRoad - 10 && distFromCenter <= halfRoad + 22 && p.speed > 70 && this.kerbCooldown === 0) {
+      this.audio.playKerb();
+      this.kerbCooldown = 0.12;
+      if (!this.reducedEffects) this.shake = Math.max(this.shake, 1.5);
+    }
+    if (this.weather === 'rain' && p.speed > 75 && this.sprayCooldown === 0 && !this.reducedEffects) {
+      const cars = [p, ...this.racers];
+      for (const car of cars) {
+        if (car.speed > 75 && Math.hypot(car.x - p.x, car.y - p.y) < 850) {
+          this.addParticle(car.x - Math.cos(car.angle) * 35, car.y - Math.sin(car.angle) * 35, '#c0d9e8', 0.4);
+        }
+      }
+      this.sprayCooldown = 0.08;
+    }
 
     if (!isOnRoad) {
       p.speed = Math.max(45, p.speed - 160 * dt);
@@ -1564,6 +1888,8 @@ class TopDownF1Game {
 
     if (!p.hasPassedStartLine && crossedFinishLine) {
       p.hasPassedStartLine = true;
+      this.beginTimedLap();
+      if (this.session === 'race') this.lapStartElapsed = this.sessionElapsed;
       if (this.session === 'qualifying') {
         this.qualifyingStarted = true;
         this.qualifyingStartTime = this.sessionElapsed;
@@ -1588,7 +1914,8 @@ class TopDownF1Game {
 
     if (this.session === 'race' && p.halfwayChecked && crossedFinishLine) {
       p.halfwayChecked = false;
-      const lapTime = (now - this.lapStartTime) / 1000;
+      this.completeTimedLap();
+      const lapTime = this.sessionElapsed - this.lapStartElapsed;
       if (lapTime < this.bestLapTime) this.bestLapTime = lapTime;
       this.audio.playLap();
 
@@ -1597,8 +1924,13 @@ class TopDownF1Game {
       } else {
         this.lap++;
         this.lapStartTime = now;
+        this.lapStartElapsed = this.sessionElapsed;
+        this.beginTimedLap();
+        if (this.lap === this.totalLaps) this.notifyRace(`ÚLTIMA VOLTA! ${document.getElementById('raceNotice').textContent}`);
       }
     }
+
+    this.sampleTimedLap();
 
     if (this.session === 'race') this.updateRacers(dt);
     if (finished) this.finishRace(now);
@@ -1675,17 +2007,35 @@ class TopDownF1Game {
 
     for (let i = 0; i < this.racers.length; i++) {
       const r = this.racers[i];
+      r.decisionCooldown = Math.max(0, r.decisionCooldown - dt);
+      r.mistakeTimer = Math.max(0, r.mistakeTimer - dt);
       const nearby = traffic.filter(other => other.car !== r).map(other => ({
         ...other, gap: (other.trackDist - r.trackDist + totalLen) % totalLen
       }));
       const blocker = nearby.filter(other => other.gap > 0 && other.gap < 210 &&
         Math.abs(r.targetLaneOffset - other.laneOffset) < 40)
         .sort((a, b) => a.gap - b.gap)[0];
-      if (blocker) {
+      if (blocker && r.decisionCooldown === 0) {
         const passingLane = blocker.laneOffset >= 0 ? -55 : 55;
         const laneClear = nearby.every(other => Math.abs(other.laneOffset - passingLane) >= 40 ||
           (other.gap > 160 && other.gap < totalLen - 90));
-        if (laneClear) r.targetLaneOffset = passingLane;
+        if (laneClear) {
+          r.targetLaneOffset = passingLane;
+          r.decisionCooldown = 1.2 + (1 - r.aggression);
+        }
+      }
+
+      const chaser = nearby.filter(other => other.gap > totalLen - 230 && other.gap < totalLen - 85 &&
+        other.speed > r.speed + 3).sort((a, b) => b.gap - a.gap)[0];
+      if (!blocker && r.decisionCooldown === 0) {
+        // Commit to one defensive move; never swerve into a car already alongside.
+        const defendLane = chaser ? (chaser.laneOffset >= 0 ? 40 : -40) : 0;
+        const safe = nearby.every(other => Math.abs(other.laneOffset - defendLane) >= 40 ||
+          (other.gap > 110 && other.gap < totalLen - 100));
+        if (safe) {
+          r.targetLaneOffset = defendLane;
+          r.decisionCooldown = chaser ? 2.8 : 1;
+        }
       }
 
       // Read the approaching bend instead of taking every corner at full speed.
@@ -1696,7 +2046,13 @@ class TopDownF1Game {
         Math.sin(angle - currentPoint.angle), Math.cos(angle - currentPoint.angle)));
       const bend = Math.max(angleDelta(nearPoint.angle), angleDelta(farPoint.angle));
       const cornerPace = Math.max(0.72, 1 - bend * 0.32);
-      let targetSpeed = r.maxSpeed * cornerPace;
+      if (bend > 0.3 && r.mistakeTimer === 0 && Math.random() < dt * 0.008 * r.aggression) {
+        r.mistakeTimer = 0.6 + Math.random() * 0.8;
+      }
+      const rhythm = 1 + Math.sin(this.sessionElapsed * 0.19 + r.rhythm) * 0.018;
+      let targetSpeed = r.maxSpeed * cornerPace * rhythm * (r.mistakeTimer > 0 ? 0.82 : 1);
+      if (this.weather === 'rain') targetSpeed *= Math.max(0.73, 0.9 - bend * 0.12);
+      if (blocker && blocker.gap > 90 && bend < 0.15) targetSpeed *= 1.015;
       for (const other of nearby) {
         if (other.gap > 0 && other.gap < 90 && Math.abs(r.laneOffset - other.laneOffset) < 32) {
           // Follow without applying a fresh percentage penalty on every frame.
@@ -1730,6 +2086,7 @@ class TopDownF1Game {
       if (distToPlayer < 40 && r.contactCooldown === 0) {
         r.contactCooldown = 0.4;
         this.audio.playBump();
+        if (!this.reducedEffects) this.shake = 5;
         const pushAngle = Math.atan2(this.player.y - r.y, this.player.x - r.x);
         this.player.x += Math.cos(pushAngle) * 5;
         this.player.y += Math.sin(pushAngle) * 5;
@@ -1786,6 +2143,7 @@ class TopDownF1Game {
   }
 
   updateHUD(now) {
+    this.updateRaceTelemetry();
     const penaltyEl = document.getElementById('trackLimitNotice');
     if (penaltyEl) {
       const remaining = this.trackLimitPenalty || 0;
@@ -1812,7 +2170,7 @@ class TopDownF1Game {
 
     const timeEl = document.getElementById('hudTime');
     if (timeEl && this.raceStarted && !this.raceFinished) {
-      const totalSec = Math.max(0, (now - this.totalStartTime) / 1000);
+      const totalSec = this.sessionElapsed;
       timeEl.innerText = this.formatTime(totalSec);
       if (this.session === 'qualifying') {
         timeEl.textContent = this.formatTime(this.qualifyingStarted
@@ -1900,6 +2258,7 @@ class TopDownF1Game {
   }
 
   finishRace(now) {
+    if (this.raceFinished) return;
     this.raceFinished = true;
     this.raceStarted = false;
     this.audio.playLap();
@@ -1916,6 +2275,21 @@ class TopDownF1Game {
     // Use the same race progress as the position display when the player finishes.
     standings.sort((a, b) => b.progress - a.progress || Number(b.isPlayer) - Number(a.isPlayer));
     this.player.rank = standings.findIndex(driver => driver.isPlayer) + 1;
+    const championshipResults = document.getElementById('championshipResults');
+    championshipResults.hidden = this.raceMode !== 'championship';
+    if (this.raceMode === 'championship' && this.championship && this.championship.round < 6) {
+      const points = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1, 0, 0];
+      standings.forEach((driver, index) => {
+        const entry = this.championship.drivers.find(item => item.id === (driver.isPlayer ? 'player' : driver.name));
+        if (entry) { entry.points += points[index]; entry.finishes.push(index + 1); }
+      });
+      this.championship.round++;
+      this.saveChampionship();
+      this.championshipTable(championshipResults);
+    }
+    document.getElementById('restartBtn').textContent = this.raceMode === 'championship'
+      ? (this.championship.round < 6 ? 'PRÓXIMA ETAPA · CLASSIFICAÇÃO' : 'DISPUTAR NOVA TEMPORADA')
+      : 'DISPUTAR NOVO GP';
     const podium = document.getElementById('podiumPlaces');
     podium.replaceChildren();
     standings.slice(0, 3).forEach((driver, index) => {
@@ -1985,7 +2359,7 @@ class TopDownF1Game {
     if (finishPos) {
       finishPos.innerText = `VOCÊ TERMINOU EM ${this.player.rank}º LUGAR!`;
     }
-    const totalSec = (now - this.totalStartTime) / 1000;
+    const totalSec = this.sessionElapsed;
     if (finishTime) finishTime.innerText = this.formatTime(totalSec);
     if (bestLapEl) bestLapEl.innerText = isFinite(this.bestLapTime) ? this.formatTime(this.bestLapTime) : '--:--.--';
   }
@@ -2000,6 +2374,11 @@ class TopDownF1Game {
   render() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.save();
+    if (this.raceStarted && !this.reducedEffects && this.shake > 0) {
+      ctx.translate(Math.sin(this.sessionElapsed * 93) * this.shake,
+        Math.cos(this.sessionElapsed * 117) * this.shake * 0.65);
+    }
 
     this.track.render(ctx, this.camera);
 
@@ -2018,6 +2397,13 @@ class TopDownF1Game {
       ctx.restore();
     }
 
+    const ghost = this.raceStarted ? this.ghostAtTime() : null;
+    if (ghost) {
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      this.renderF1CarSprite(ctx, ghost.x, ghost.y, ghost.angle, this.player.livery, '', true);
+      ctx.restore();
+    }
     for (let r of this.racers) {
       this.renderF1CarSprite(ctx, r.x, r.y, r.angle, r.livery, r.name, false, r.number);
     }
@@ -2042,6 +2428,45 @@ class TopDownF1Game {
     }
     ctx.globalAlpha = 1.0;
 
+    ctx.restore();
+    ctx.restore();
+    this.renderRaceAtmosphere(ctx);
+  }
+
+  renderRaceAtmosphere(ctx) {
+    if (!this.raceStarted && !this.countdownActive) return;
+    const w = this.canvas.width, h = this.canvas.height;
+    const time = this.sessionElapsed;
+    ctx.save();
+    if (this.weather === 'rain') {
+      ctx.fillStyle = 'rgba(30, 58, 85, 0.16)';
+      ctx.fillRect(0, 0, w, h);
+      if (!this.reducedEffects) {
+        ctx.strokeStyle = 'rgba(195, 224, 245, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < 75; i++) {
+          const x = ((i * 137.3 - time * 220) % (w + 40) + w + 40) % (w + 40) - 20;
+          const y = (i * 83.7 + time * 580) % (h + 40) - 20;
+          ctx.moveTo(x, y); ctx.lineTo(x - 7, y + 18);
+        }
+        ctx.stroke();
+      }
+    }
+    const speed = this.player.speed / this.player.maxSpeed;
+    if (!this.reducedEffects && speed > 0.8) {
+      ctx.strokeStyle = `rgba(219, 237, 255, ${(speed - 0.8) * 0.65})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < 18; i++) {
+        const angle = i * Math.PI * 2 / 18;
+        const radius = 0.72 + ((time * 1.7 + i * 0.37) % 0.35);
+        const x = Math.cos(angle) * w * 0.58, y = Math.sin(angle) * h * 0.58;
+        ctx.moveTo(w / 2 + x * radius, h / 2 + y * radius);
+        ctx.lineTo(w / 2 + x * (radius + 0.08), h / 2 + y * (radius + 0.08));
+      }
+      ctx.stroke();
+    }
     ctx.restore();
   }
 

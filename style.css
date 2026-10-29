@@ -1293,3 +1293,24 @@ padding-right: max(12px, env(safe-area-inset-right));
   #finishScreen .retro-title, #finishScreen .retro-sub, #finishScreen .podium-place, #finishScreen .podium-place-1, #finishScreen .podium-place-1 .podium-badge, #finishScreen .finish-stats, #finishScreen .track-actions { animation: none; }
   .podium-confetti { display: none; }
 }
+/* Championship controls and standings share the arcade panel styling. */
+.championship-panel { width: min(800px, 100%); box-sizing: border-box; padding: 16px; margin: 12px 0; border: 1px solid #435264; border-radius: 8px; background: #101821; color: #dbe7f3; font: 12px/1.8 monospace; }
+.championship-panel label { display: block; color: #ffe15a; margin-bottom: 8px; }
+.championship-panel select { width: 100%; padding: 12px; background: #182534; color: #fff; border: 1px solid #64788c; border-radius: 4px; font: inherit; }
+.championship-panel table { width: 100%; }
+.championship-panel button { margin-bottom: 12px; }
+.championship-panel :focus-visible { outline: 3px solid #ffe15a; outline-offset: 3px; }
+.track-card:disabled { opacity: .45; cursor: default; }
+#championshipResults[hidden], #menuChampionshipTable[hidden], #newChampionshipBtn[hidden] { display: none; }
+
+.race-telemetry { position: absolute; top: 116px; left: 18px; max-width: calc(100% - 180px); display: flex; flex-direction: column; align-items: flex-start; gap: 5px; pointer-events: none; font: bold 11px/1.5 monospace; color: #dceaf6; }
+.race-telemetry span:not(:empty) { padding: 5px 8px; border-left: 2px solid #637c92; background: #080f20dd; border-radius: 3px; }
+#hudDelta[data-faster="true"] { color: #6effaf; border-color: #6effaf; }
+#hudDelta[data-faster="false"] { color: #ff8795; border-color: #ff8795; }
+.race-notice { position: absolute; top: 32%; left: 50%; transform: translateX(-50%); width: max-content; max-width: 85%; box-sizing: border-box; padding: 12px 16px; border: 1px solid #ffe15a; border-radius: 6px; background: #0b1427ee; color: #ffe15a; text-align: center; font: bold 12px/1.8 monospace; pointer-events: none; }
+#raceNotice[hidden] { display: none; }
+@media (max-width: 640px) {
+  .race-telemetry { top: 100px; left: 8px; max-width: calc(100% - 16px); font-size: 9px; gap: 3px; }
+  .race-telemetry span:not(:empty) { padding: 3px 5px; }
+  .race-notice { top: 42%; font-size: 10px; }
+}

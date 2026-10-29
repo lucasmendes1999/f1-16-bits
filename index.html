@@ -39,6 +39,8 @@
           <button id="modalPauseBtn" class="modal-btn primary">⏸️ PAUSAR CORRIDA</button>
           <button id="modalAudioBtn" class="modal-btn">🔊 SOM: ATIVADO</button>
           <button id="modalCrtBtn" class="modal-btn">📺 FILTRO CRT: LIGADO</button>
+          <button id="modalEffectsBtn" class="modal-btn" type="button" aria-pressed="false">EFEITOS REDUZIDOS: NÃO</button>
+          <button id="modalGhostBtn" class="modal-btn" type="button" aria-pressed="true">CARRO FANTASMA: LIGADO</button>
           <button id="modalRestartBtn" class="modal-btn" style="border-color: #ff0044;">🔄 REINICIAR CLASSIFICAÇÃO</button>
           <button id="modalHomeBtn" class="modal-btn" style="border-color: #ffd000; color: #ffd000;">🏠 VOLTAR AO MENU INICIAL</button>
           <button id="modalCloseBtn" class="modal-btn" style="background: #251347; color: #ffe600;">❯ VOLTAR À PISTA</button>
@@ -60,6 +62,12 @@
 
     <!-- HUD Overlay Top-Down da Corrida -->
     <div id="hud">
+      <div id="raceNotice" class="race-notice" role="status" hidden></div>
+      <div class="race-telemetry" aria-label="Telemetria da corrida">
+        <span id="hudGaps"></span>
+        <span id="hudRecord"></span>
+        <span id="hudDelta"></span>
+      </div>
       <div id="trackLimitNotice" class="track-limit-notice" role="status" aria-live="off" hidden></div>
       <div class="hud-top">
         <div class="hud-box gold">
@@ -215,6 +223,13 @@
         <div class="circuit-heading"><p>SEU PRÓXIMO DESAFIO</p><h1>Escolha seu circuito.</h1><span>06 PISTAS LENDÁRIAS · UMA POLE EM JOGO</span></div>
         <p class="qualify-note">Faça uma volta de classificação com a pista livre para definir sua posição de largada.</p>
 
+        <section class="championship-panel" aria-label="Modo de jogo">
+          <label for="raceMode">MODO DE JOGO</label>
+          <select id="raceMode"><option value="single">GP AVULSO</option><option value="championship">CAMPEONATO · 6 ETAPAS</option></select>
+          <p id="championshipInfo" role="status"></p>
+          <button id="newChampionshipBtn" class="diff-btn" type="button" hidden>NOVA TEMPORADA</button>
+          <div id="menuChampionshipTable"></div>
+        </section>
         <div class="track-cards-grid">
           <button type="button" class="track-card selected" data-track="interlagos" aria-pressed="true">
             <div class="track-card-title">🇧🇷 INTERLAGOS</div>
@@ -246,6 +261,11 @@
           </button>
         </div>
 
+        <section class="championship-panel weather-setting" aria-label="Condições da pista">
+          <label for="raceWeather">CLIMA</label>
+          <select id="raceWeather" aria-describedby="weatherHint"><option value="dry">SECO</option><option value="rain">CHUVA</option></select>
+          <p id="weatherHint">Na chuva, freie antes: menos aderência e maior distância de frenagem. Recordes separados por clima e dificuldade.</p>
+        </section>
         <div class="race-laps-setting">
           <label for="raceLaps">VOLTAS DA CORRIDA</label>
           <select id="raceLaps" aria-describedby="raceLapsHint">
@@ -307,6 +327,7 @@
         <h2 id="podiumTitle">Os melhores da pista.</h2>
         <ol id="podiumPlaces" class="podium-places" aria-label="Os três primeiros colocados"></ol>
       </section>
+      <section id="championshipResults" class="championship-panel" aria-label="Classificação do campeonato" hidden></section>
       <section class="finish-stats" aria-label="Seu resultado">
         <div class="finish-stat"><span>SEU PILOTO</span><strong id="finishPilotName">A. SENNA</strong><small>BANDEIRA QUADRICULADA</small></div>
         <div class="finish-stat"><span>TEMPO DE PROVA</span><strong id="finishTime">00:00.00</strong><small>TEMPO TOTAL</small></div>
