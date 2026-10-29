@@ -3,7 +3,7 @@ function runRaceFeatureTests(source) {
   const assert = (value, message) => { if (!value) throw new Error(message); };
   const elements = new Map();
   const makeNode = () => ({
-    style: { setProperty() {} }, dataset: {}, value: '3', hidden: false, textContent: '', children: [],
+    style: { setProperty() {} }, classList: { add() {}, remove() {} }, dataset: {}, value: '3', hidden: false, textContent: '', children: [],
     setAttribute() {}, addEventListener() {}, replaceChildren() { this.children = []; },
     append(...nodes) { this.children.push(...nodes); }, appendChild(node) { this.children.push(node); },
     querySelector(selector) { return selector === '.podium-confetti' ? null : makeNode(); },
@@ -20,9 +20,11 @@ function runRaceFeatureTests(source) {
     getItem: key => saved.get(key) || null,
     setItem(key, value) { saved.set(key, value); }, removeItem(key) { saved.delete(key); }
   };
-  const { Game, Track, Audio } = new Function('window', 'document', 'localStorage', source +
+  const timers = [];
+  const { Game, Track, Audio } = new Function('window', 'document', 'localStorage', 'setTimeout', 'performance', source +
     '\nreturn { Game: TopDownF1Game, Track: TopDownTrack, Audio: RetroSoundEngine };')(
-    { addEventListener() {}, matchMedia() { return { matches: true }; } }, document, storage);
+    { addEventListener() {}, matchMedia() { return { matches: true }; } }, document, storage,
+    callback => { timers.push(callback); }, { now: () => 1000 });
   const g = Object.create(Game.prototype);
   Object.assign(g, {
     selectedTrack: 'interlagos', difficulty: 'medium', sessionElapsed: 0,
@@ -149,7 +151,23 @@ function runRaceFeatureTests(source) {
 
   const audio = new Audio();
   audio.updateEngine(0.8); audio.playKerb();
-  return 'PASS: records, ghost, storage failure, rain physics, AI, championship, pause-safe timing, rendering and audio guards';
+
+  // Backgrounding/pausing must not advance lights or release the grid.
+  const countdown = Object.create(Game.prototype);
+  let beeps = 0;
+  Object.assign(countdown, { sessionToken: 1, isPaused: true, player: {}, racers: [], totalLaps: 3,
+    audio: { playBeep() { beeps++; }, startMusic() {} } });
+  countdown.startF1Countdown(); timers.shift()();
+  assert(beeps === 0, 'Paused countdown does not advance lights');
+  countdown.isPaused = false;
+  for (let i = 0; i < 6; i++) timers.shift()();
+  assert(beeps === 5, 'Five red lights');
+  countdown.isPaused = true; timers.shift()();
+  assert(!countdown.raceStarted && beeps === 5, 'Paused grid cannot launch');
+  countdown.isPaused = false; timers.shift()();
+  assert(countdown.raceStarted && beeps === 6, 'Resume releases grid');
+  countdown.sessionToken++; timers.shift()();
+  return 'PASS: records, ghost, storage failure, rain physics, AI, championship, pause-safe timing, rendering, audio and countdown pause';
 }
 
 if (typeof module !== 'undefined' && require.main === module) {

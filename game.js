@@ -1376,6 +1376,23 @@ class TopDownF1Game {
   }
 
   bindEvents() {
+    // Native Android lifecycle events keep controls and audio paused in background.
+    window.addEventListener('nativepause', () => {
+      this.resetControls();
+      if (this.raceStarted || this.countdownActive) this.toggleInteractiveMenu(true);
+      if (this.audio.ctx) this.audio.ctx.suspend();
+    });
+    window.addEventListener('nativeresume', () => {
+      this.lastTime = performance.now();
+      if (this.audio.ctx) this.audio.ctx.resume();
+    });
+    window.addEventListener('nativeback', () => {
+      if (this.raceStarted || this.countdownActive) {
+        this.toggleInteractiveMenu();
+      } else if (document.getElementById('titleScreen').style.display === 'none') {
+        this.goToHomeMenu();
+      }
+    });
     window.addEventListener('keydown', (e) => {
       if (['ArrowLeft', 'KeyA'].includes(e.code)) this.keys.left = true;
       if (['ArrowRight', 'KeyD'].includes(e.code)) this.keys.right = true;
@@ -1720,14 +1737,16 @@ class TopDownF1Game {
 
     const lightStep = (step) => {
       if (!this.countdownActive || token !== this.sessionToken) return;
+      if (this.isPaused) { setTimeout(() => lightStep(step), 100); return; }
       if (step <= 5) {
         document.getElementById(`lamp${step}`).classList.add('lit');
         this.audio.playBeep(false);
         setTimeout(() => lightStep(step + 1), 750);
       } else {
         const waitTime = 800 + Math.random() * 700;
-        setTimeout(() => {
+        const launch = () => {
           if (!this.countdownActive || token !== this.sessionToken) return;
+          if (this.isPaused) { setTimeout(launch, 100); return; }
           for (let i = 1; i <= 5; i++) {
             document.getElementById(`lamp${i}`).classList.remove('lit');
           }
@@ -1757,7 +1776,8 @@ class TopDownF1Game {
             overlay.style.display = 'none';
             text.style.color = '#00ffff';
           }, 1200);
-        }, waitTime);
+        };
+        setTimeout(launch, waitTime);
       }
     };
 

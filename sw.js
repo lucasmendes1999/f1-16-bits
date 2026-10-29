@@ -1,6 +1,6 @@
 // Increment this version whenever the local game files change.
 const CACHE_PREFIX = 'f1-16-bits-';
-const CACHE_NAME = `${CACHE_PREFIX}v33`;
+const CACHE_NAME = `${CACHE_PREFIX}v34`;
 const APP_FILES = [
   './', './index.html', './style.css', './game.js', './pwa.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png',

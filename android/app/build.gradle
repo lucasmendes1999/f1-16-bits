@@ -1,0 +1,46 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.lmracing.f116bits'
+    compileSdk 37
+
+    defaultConfig {
+        applicationId 'com.lmracing.f116bits'
+        minSdk 23
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/game-assets')
+    sourceSets.main.res.srcDir layout.buildDirectory.dir('generated/game-res')
+}
+
+def prepareGame = tasks.register('prepareGame') {
+    inputs.files(fileTree('../..') {
+        include 'index.html', 'game.js', 'style.css', 'manifest.webmanifest', 'icons/**'
+    })
+    outputs.dirs(layout.buildDirectory.dir('generated/game-assets'), layout.buildDirectory.dir('generated/game-res'))
+    doLast {
+        def assets = layout.buildDirectory.dir('generated/game-assets').get().asFile
+        copy {
+            from '../..'
+            include 'index.html', 'game.js', 'style.css', 'manifest.webmanifest', 'icons/**'
+            into assets
+        }
+        def html = new File(assets, 'index.html')
+        html.setText(html.getText('UTF-8')
+            .replaceAll('(?m)^.*<script src="pwa.js" defer></script>.*\\r?\\n', '')
+            .replaceAll('(?m)^.*<link[^>]+(?:fonts.googleapis.com|fonts.gstatic.com)[^>]*>.*\\r?\\n', '')
+            .replace('<head>', '<head><script>window.__ANDROID_APP__ = true;</script>'), 'UTF-8')
+        copy {
+            from '../../icons/icon-192.png'
+            into layout.buildDirectory.dir('generated/game-res/drawable')
+            rename { 'ic_launcher.png' }
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn prepareGame }
